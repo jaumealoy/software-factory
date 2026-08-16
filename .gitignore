@@ -1,1 +1,28 @@
 .codegraph
+
+# dependencies
+node_modules/
+
+# builds
+dist/
+coverage/
+
+# local runtime data
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# environment
+.env
+.env.*
+
+!.env.example
+
+# OS
+.DS_Store
+
+# editor
+.idea/
+.vscode/

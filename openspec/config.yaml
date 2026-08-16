@@ -8,6 +8,15 @@ schema: spec-driven
 #     Tech stack: TypeScript, React, Node.js
 #     We use conventional commits
 #     Domain: e-commerce platform
+context: |
+  The Software Factory is an AI-native feature factory. This repo is the factory
+  implementation (see issue #1 for the functional specification).
+  Tech stack: TypeScript everywhere, pnpm workspaces, Fastify (apps/api), React + Vite
+  (apps/web), SQLite + Drizzle ORM for persistence, Vitest for tests, ESLint 9 flat config
+  and Prettier for quality tooling. Commands: pnpm dev/test/typecheck/lint/build,
+  pnpm db:generate/db:migrate. Runtime architecture lives in docs/architecture/.
+  MVP scope: request -> refinement/critique -> OpenSpec artifacts -> impact analysis ->
+  capability/task decomposition -> GitHub task issues, surfaced through the web dashboard.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

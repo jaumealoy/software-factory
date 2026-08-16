@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+data/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.codegraph/
+.kilocode/
+openspec/changes/
+apps/api/drizzle/
