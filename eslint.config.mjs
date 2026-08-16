@@ -23,5 +23,11 @@ export default tseslint.config(
         ...globals.browser,
       },
     },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
   },
 );
