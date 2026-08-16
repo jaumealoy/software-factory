@@ -1,0 +1,117 @@
+export const CHANGE_STATUSES = [
+  "CREATED",
+  "REFINING",
+  "CRITIQUE",
+  "WAITING_FOR_DECISION",
+  "SPECIFYING",
+  "ANALYZING",
+  "DECOMPOSING",
+  "CONTRACTING",
+  "TEST_DESIGN",
+  "TEST_IMPLEMENTATION",
+  "IMPLEMENTING",
+  "VERIFYING",
+  "DIAGNOSING",
+  "REVIEWING",
+  "FIXING",
+  "READY_FOR_PR",
+  "DONE",
+  "CANCELLED",
+] as const;
+
+export type ChangeStatus = (typeof CHANGE_STATUSES)[number];
+
+export const TASK_STATUSES = [
+  "PROPOSED",
+  "READY",
+  "BLOCKED",
+  "TEST_DESIGN",
+  "TEST_IMPLEMENTATION",
+  "IMPLEMENTATION",
+  "VERIFYING",
+  "REVIEW",
+  "REWORK",
+  "DONE",
+  "CANCELLED",
+] as const;
+
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export const DECISION_STATUSES = ["PENDING", "APPROVED", "DECLINED"] as const;
+
+export type DecisionStatus = (typeof DECISION_STATUSES)[number];
+
+export const RISK_LEVELS = ["low", "medium", "high"] as const;
+
+export type RiskLevel = (typeof RISK_LEVELS)[number];
+
+export const ARTIFACT_KINDS = [
+  "openspec_proposal",
+  "openspec_design",
+  "openspec_spec",
+  "openspec_tasks",
+  "impact_manifest",
+  "contract",
+  "other",
+] as const;
+
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
+
+export const CHANGE_TRANSITIONS: Record<ChangeStatus, readonly ChangeStatus[]> = {
+  CREATED: ["REFINING", "CANCELLED"],
+  REFINING: ["CRITIQUE", "WAITING_FOR_DECISION", "CANCELLED"],
+  CRITIQUE: ["SPECIFYING", "WAITING_FOR_DECISION", "CANCELLED"],
+  WAITING_FOR_DECISION: [
+    "REFINING",
+    "CRITIQUE",
+    "SPECIFYING",
+    "ANALYZING",
+    "DECOMPOSING",
+    "CONTRACTING",
+    "TEST_DESIGN",
+    "TEST_IMPLEMENTATION",
+    "IMPLEMENTING",
+    "VERIFYING",
+    "DIAGNOSING",
+    "REVIEWING",
+    "FIXING",
+    "READY_FOR_PR",
+    "CANCELLED",
+  ],
+  SPECIFYING: ["ANALYZING", "WAITING_FOR_DECISION", "CANCELLED"],
+  ANALYZING: ["DECOMPOSING", "WAITING_FOR_DECISION", "CANCELLED"],
+  DECOMPOSING: ["CONTRACTING", "TEST_DESIGN", "WAITING_FOR_DECISION", "CANCELLED"],
+  CONTRACTING: ["TEST_DESIGN", "WAITING_FOR_DECISION", "CANCELLED"],
+  TEST_DESIGN: ["TEST_IMPLEMENTATION", "WAITING_FOR_DECISION", "CANCELLED"],
+  TEST_IMPLEMENTATION: ["IMPLEMENTING", "WAITING_FOR_DECISION", "CANCELLED"],
+  IMPLEMENTING: ["VERIFYING", "WAITING_FOR_DECISION", "CANCELLED"],
+  VERIFYING: ["REVIEWING", "DIAGNOSING", "WAITING_FOR_DECISION", "CANCELLED"],
+  DIAGNOSING: ["IMPLEMENTING", "WAITING_FOR_DECISION", "CANCELLED"],
+  REVIEWING: ["READY_FOR_PR", "FIXING", "WAITING_FOR_DECISION", "CANCELLED"],
+  FIXING: ["IMPLEMENTING", "WAITING_FOR_DECISION", "CANCELLED"],
+  READY_FOR_PR: ["DONE", "FIXING", "CANCELLED"],
+  DONE: [],
+  CANCELLED: [],
+};
+
+export const TASK_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
+  PROPOSED: ["READY", "CANCELLED"],
+  READY: ["TEST_DESIGN", "BLOCKED", "CANCELLED"],
+  BLOCKED: ["READY", "CANCELLED"],
+  TEST_DESIGN: ["TEST_IMPLEMENTATION", "CANCELLED"],
+  TEST_IMPLEMENTATION: ["IMPLEMENTATION", "CANCELLED"],
+  IMPLEMENTATION: ["VERIFYING", "CANCELLED"],
+  VERIFYING: ["REVIEW", "IMPLEMENTATION", "REWORK", "CANCELLED"],
+  REVIEW: ["DONE", "IMPLEMENTATION", "REWORK", "CANCELLED"],
+  REWORK: ["IMPLEMENTATION", "VERIFYING", "CANCELLED"],
+  DONE: [],
+  CANCELLED: [],
+};
+
+export function canTransitionChange(from: ChangeStatus, to: ChangeStatus): boolean {
+  return CHANGE_TRANSITIONS[from].includes(to);
+}
+
+export function canTransitionTask(from: TaskStatus, to: TaskStatus): boolean {
+  return TASK_TRANSITIONS[from].includes(to);
+}
