@@ -5,12 +5,17 @@ import { loadConfig, type Config } from "./config.js";
 import { createDb, runMigrations, type DbHandle } from "./db/index.js";
 import { migrationsDir, webDistPath } from "./paths.js";
 import { healthRoutes } from "./routes/health.js";
+import { projectRoutes } from "./routes/projects.js";
+import { changesRoutes } from "./routes/changes.js";
+import { decisionsRoutes } from "./routes/decisions.js";
+import type { WorkflowProvider } from "./workflow/types.js";
 
 export interface BuildAppOptions {
   config?: Config;
   db?: DbHandle;
   scheduleMigrations?: boolean;
   serveWeb?: boolean;
+  workflowProvider?: WorkflowProvider;
 }
 
 export async function buildApp(options: BuildAppOptions = {}) {
@@ -25,6 +30,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
 
   await app.register(healthRoutes, { db: db.db });
+  await app.register(projectRoutes, { db: db.db });
+  await app.register(changesRoutes, { db: db.db, workflowProvider: options.workflowProvider });
+  await app.register(decisionsRoutes, { db: db.db, workflowProvider: options.workflowProvider });
 
   if ((options.serveWeb ?? config.NODE_ENV !== "test") && existsSync(webDistPath)) {
     await app.register(fastifyStatic, {

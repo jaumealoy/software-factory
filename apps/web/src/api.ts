@@ -1,13 +1,160 @@
-export interface HealthResponse {
-  status: "ok" | "degraded";
-  database: string;
-  timestamp: string;
+export type ChangeStatus = string;
+export type TaskStatus = string;
+
+export interface Project {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  const response = await fetch("/api/health", { signal });
-  if (!response.ok) {
-    throw new Error(`Health check failed with status ${response.status}`);
-  }
-  return (await response.json()) as HealthResponse;
+export interface ChangeSummary {
+  id: string;
+  projectId: string;
+  title: string;
+  summary: string | null;
+  requestText: string;
+  status: ChangeStatus;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface TaskItem {
+  id: string;
+  changeId: string;
+  capabilityId: string | null;
+  objective: string;
+  scope: string | null;
+  status: TaskStatus;
+  risk: string;
+  githubIssueNumber: number | null;
+  githubIssueUrl: string | null;
+}
+
+export interface TaskEdge {
+  taskId: string;
+  dependsOnTaskId: string;
+}
+
+export interface TaskGraph {
+  tasks: TaskItem[];
+  edges: TaskEdge[];
+  isAcyclic: boolean;
+}
+
+export interface Capability {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface Artifact {
+  id: string;
+  changeId: string | null;
+  taskId: string | null;
+  kind: string;
+  path: string | null;
+  uri: string | null;
+  summary: string | null;
+  createdAt: string;
+}
+
+export interface Decision {
+  id: string;
+  changeId: string;
+  problem: string;
+  optionsJson: string;
+  recommendation: string | null;
+  rationale: string | null;
+  status: string;
+  resolutionNote: string | null;
+  createdAt: string;
+}
+
+export interface ExecutionEvent {
+  id: string;
+  entityType: string;
+  entityId: string;
+  eventType: string;
+  payloadJson: string | null;
+  createdAt: string;
+}
+
+export interface ChangeDetail {
+  change: ChangeSummary;
+  capabilities: Capability[];
+  tasks: TaskItem[];
+  taskGraph: TaskGraph;
+  pendingDecisions: Decision[];
+  artifacts: Artifact[];
+  events: ExecutionEvent[];
+}
+
+export type WorkflowPhase = "completed" | "awaiting_decision";
+
+export interface WorkflowResult {
+  changeId: string;
+  phase: WorkflowPhase;
+  decisionId: string | null;
+  tasksCreated: number;
+  capabilitiesCreated: number;
+  openspecName: string | null;
+  impactArtifactId: string | null;
+}
+
+export interface CreateChangeResponse {
+  workflow: WorkflowResult;
+  pendingDecisions: Decision[];
+}
+
+export interface ResolveDecisionResponse {
+  decision: Decision;
+  workflow: WorkflowResult | null;
+  pendingDecisions: Decision[];
+}
+
+export interface CreateChangePayload {
+  projectId: string;
+  title: string;
+  requestText: string;
+  repositoryPath: string;
+}
+
+async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      // keep default
+    }
+    throw new Error(message);
+  }
+  return (await response.json()) as T;
+}
+
+export const api = {
+  listProjects: () => request<Project[]>("/api/projects"),
+
+  listChanges: () => request<ChangeSummary[]>("/api/changes"),
+
+  getChange: (changeId: string) => request<ChangeDetail>(`/api/changes/${changeId}`),
+
+  createChange: (payload: CreateChangePayload) =>
+    request<CreateChangeResponse>("/api/changes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  resolveDecision: (decisionId: string, payload: { approved: boolean; repositoryPath: string }) =>
+    request<ResolveDecisionResponse>(`/api/decisions/${decisionId}/resolve`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+};
