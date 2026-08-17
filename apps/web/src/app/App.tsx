@@ -1,57 +1,78 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { Group, Panel, Separator, type Layout } from "react-resizable-panels";
 import { Toaster } from "./toast";
+import { Sidebar } from "./components/sidebar";
+import { PlaceholderPane } from "./components/placeholder";
+import { cn } from "../lib/utils";
 
-const linkBase: React.CSSProperties = {
-  color: "#e6edf3",
-  textDecoration: "none",
-  fontSize: "0.95rem",
-  padding: "0.35rem 0.75rem",
-  borderRadius: "0.375rem",
-};
+const LAYOUT_KEY = "factory.workspaceLayout";
 
-function navLinkStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
-  return isActive
-    ? { ...linkBase, backgroundColor: "rgba(255,255,255,0.15)", fontWeight: 600 }
-    : linkBase;
+function loadLayout(): Layout | undefined {
+  try {
+    const stored = localStorage.getItem(LAYOUT_KEY);
+    return stored ? (JSON.parse(stored) as Layout) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function SeparatorHandle({ id }: { id: string }) {
+  return (
+    <Separator
+      id={id}
+      aria-label="Resize pane"
+      className={cn(
+        "w-px shrink-0 bg-border transition-colors hover:bg-accent",
+        "data-[size-direction=backwards]:bg-accent",
+      )}
+    />
+  );
 }
 
 export function AppShell() {
+  const [layout, setLayout] = useState<Layout | undefined>(loadLayout);
+
+  function handleLayoutChange(next: Layout) {
+    setLayout(next);
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <header
-        style={{
-          backgroundColor: "#0d1117",
-          color: "#e6edf3",
-          display: "flex",
-          alignItems: "center",
-          gap: "1.5rem",
-          padding: "0.75rem 1.5rem",
-        }}
+    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+      <Sidebar />
+      <Group
+        orientation="horizontal"
+        id="factory-workspace"
+        defaultLayout={layout}
+        onLayoutChange={handleLayoutChange}
+        className="flex-1"
       >
-        <h1 style={{ fontSize: "1.1rem", margin: 0 }}>Software Factory</h1>
-        <nav style={{ display: "flex", gap: "0.25rem" }} aria-label="Primary">
-          <NavLink to="/" end style={navLinkStyle}>
-            Requests
-          </NavLink>
-          <NavLink to="/changes" style={navLinkStyle}>
-            Changes
-          </NavLink>
-          <NavLink to="/runs" style={navLinkStyle}>
-            Runs
-          </NavLink>
-        </nav>
-      </header>
-      <main
-        style={{
-          flex: 1,
-          width: "100%",
-          maxWidth: "56rem",
-          margin: "0 auto",
-          padding: "1.5rem 1rem",
-        }}
-      >
-        <Outlet />
-      </main>
+        <Panel id="files" defaultSize="18" minSize="10" collapsible className="min-w-0">
+          <PlaceholderPane title="Project files">
+            <p>
+              Browse the repository here. The file tree and editor arrive with the Project files
+              workspace.
+            </p>
+          </PlaceholderPane>
+        </Panel>
+        <SeparatorHandle id="files-separator" />
+        <Panel id="main" defaultSize="62" minSize="30" className="min-w-0">
+          <main className="h-full overflow-auto p-4 lg:p-6">
+            <Outlet />
+          </main>
+        </Panel>
+        <SeparatorHandle id="main-separator" />
+        <Panel id="chat" defaultSize="20" minSize="12" collapsible className="min-w-0">
+          <PlaceholderPane title="Agent chat">
+            <p>Live agent transcript and chat will render here when a run is streaming.</p>
+          </PlaceholderPane>
+        </Panel>
+      </Group>
       <Toaster />
     </div>
   );
