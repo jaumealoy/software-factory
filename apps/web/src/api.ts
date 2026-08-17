@@ -6,6 +6,7 @@ export interface Project {
   name: string;
   slug: string;
   description: string | null;
+  defaultModel: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,10 +28,22 @@ export interface TaskItem {
   capabilityId: string | null;
   objective: string;
   scope: string | null;
+  model: string | null;
   status: TaskStatus;
   risk: string;
   githubIssueNumber: number | null;
   githubIssueUrl: string | null;
+}
+
+export interface KiloModel {
+  id: string;
+  provider: string;
+  model: string;
+}
+
+export interface TaskModelResolution {
+  model: string;
+  source: "task" | "project" | "default";
 }
 
 export interface TaskEdge {
@@ -140,6 +153,22 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
 
 export const api = {
   listProjects: () => request<Project[]>("/api/projects"),
+
+  listModels: () => request<{ models: KiloModel[] }>("/api/models"),
+
+  setTaskModel: (taskId: string, model: string | null) =>
+    request<{ task: TaskItem; model: TaskModelResolution }>(`/api/tasks/${taskId}/model`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model }),
+    }),
+
+  setProjectDefaultModel: (projectId: string, model: string | null) =>
+    request<Project>(`/api/projects/${projectId}/model`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model }),
+    }),
 
   listChanges: () => request<ChangeSummary[]>("/api/changes"),
 

@@ -5,6 +5,7 @@ import { requestDecision } from "../domain/decisions.js";
 import { ValidationError } from "../domain/errors.js";
 import { recordEvent } from "../domain/events.js";
 import { getTask, getTaskGraph, transitionTask } from "../domain/tasks.js";
+import { resolveTaskModel } from "../domain/models.js";
 import type { ChangeStatus } from "../domain/statuses.js";
 import { listArtifacts } from "../domain/artifacts.js";
 import { publishTaskIssue } from "../github/publisher.js";
@@ -40,6 +41,15 @@ export interface RunTaskResult {
   outcome: RunOutcome;
   decisionId: string | null;
   phaseResults: Array<{ phase: TaskRunContext["phase"]; result: TaskRunResult }>;
+}
+
+/** Runs a task using its resolved model (task preference > project default > global default). */
+export async function runTaskWithResolvedModel(
+  db: Db,
+  input: Omit<RunTaskInput, "model">,
+): Promise<RunTaskResult> {
+  const resolution = resolveTaskModel(db, input.taskId);
+  return runTask(db, { ...input, model: resolution.model });
 }
 
 /** Tasks that are READY and whose dependencies are all DONE. */

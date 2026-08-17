@@ -15,6 +15,13 @@
       "when": 1786913816174,
       "tag": "0001_tiresome_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786947609031,
+      "tag": "0002_amused_bishop",
+      "breakpoints": true
     }
   ]
 }

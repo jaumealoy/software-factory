@@ -34,6 +34,7 @@ export const factoryProjects = sqliteTable("factory_projects", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
+  defaultModel: text("default_model"),
   createdAt,
   updatedAt,
 });
@@ -107,6 +108,7 @@ export const tasks = sqliteTable(
     }),
     objective: text("objective").notNull(),
     scope: text("scope"),
+    model: text("model"),
     status: text("status").$type<TaskStatus>().notNull().default("PROPOSED"),
     risk: text("risk").$type<RiskLevel>().notNull().default("low"),
     githubIssueNumber: integer("github_issue_number"),

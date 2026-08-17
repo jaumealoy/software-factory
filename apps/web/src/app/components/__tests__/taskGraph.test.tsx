@@ -10,6 +10,7 @@ function task(id: string, objective: string, status = "READY"): TaskItem {
     capabilityId: null,
     objective,
     scope: null,
+    model: null,
     status,
     risk: "low",
     githubIssueNumber: null,

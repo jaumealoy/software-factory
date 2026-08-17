@@ -8,6 +8,8 @@ import { healthRoutes } from "./routes/health.js";
 import { projectRoutes } from "./routes/projects.js";
 import { changesRoutes } from "./routes/changes.js";
 import { decisionsRoutes } from "./routes/decisions.js";
+import { modelsRoutes } from "./routes/models.js";
+import { tasksRoutes } from "./routes/tasks.js";
 import type { WorkflowProvider } from "./workflow/types.js";
 
 export interface BuildAppOptions {
@@ -16,6 +18,7 @@ export interface BuildAppOptions {
   scheduleMigrations?: boolean;
   serveWeb?: boolean;
   workflowProvider?: WorkflowProvider;
+  modelsRunner?: () => Promise<string>;
 }
 
 export async function buildApp(options: BuildAppOptions = {}) {
@@ -30,7 +33,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
 
   await app.register(healthRoutes, { db: db.db });
-  await app.register(projectRoutes, { db: db.db });
+  await app.register(projectRoutes, { db: db.db, modelsRunner: options.modelsRunner });
+  await app.register(modelsRoutes, { modelsRunner: options.modelsRunner });
+  await app.register(tasksRoutes, { db: db.db, modelsRunner: options.modelsRunner });
   await app.register(changesRoutes, { db: db.db, workflowProvider: options.workflowProvider });
   await app.register(decisionsRoutes, { db: db.db, workflowProvider: options.workflowProvider });
 

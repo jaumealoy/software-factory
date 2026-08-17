@@ -30,6 +30,7 @@ const project: Project = {
   name: "Demo Factory Project",
   slug: "demo",
   description: null,
+  defaultModel: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -54,6 +55,7 @@ function makeDetail(overrides: Partial<ChangeDetail> = {}): ChangeDetail {
         capabilityId: "cap1",
         objective: "Define the auth contract.",
         scope: null,
+        model: null,
         status: "READY",
         risk: "medium",
         githubIssueNumber: null,
