@@ -13,7 +13,7 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Badge } from "../../components/ui/badge";
-import { Separator } from "../../components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { messageOf } from "../domainViews";
 import { ProjectFoldersCard } from "../components/projectFoldersCard";
 
@@ -97,125 +97,141 @@ export function ConfigurationPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <section aria-label="Provider credentials">
-        <Card>
-          <CardHeader>
-            <CardTitle>Providers</CardTitle>
-            <CardDescription>
-              API keys are stored encrypted at rest and are never shown again. The task runner
-              injects the key for the selected provider when running the Kilo agent.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {providers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No providers available.</p>
-            ) : (
-              providers.map((provider) => (
-                <div key={provider.provider} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor={`key-${provider.provider}`} className="capitalize">
-                      {provider.provider}
-                    </Label>
-                    {provider.configured ? (
-                      <Badge variant="outline">{provider.masked}</Badge>
-                    ) : (
-                      <Badge variant="secondary">not configured</Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id={`key-${provider.provider}`}
-                      type="password"
-                      placeholder={
-                        provider.configured
-                          ? "Replace the stored key…"
-                          : `Paste your ${provider.provider} API key…`
-                      }
-                      value={keys[provider.provider] ?? ""}
-                      onChange={(e) =>
-                        setKeys((prev) => ({ ...prev, [provider.provider]: e.target.value }))
-                      }
-                    />
-                    <Button
-                      aria-label={`Save key for ${provider.provider}`}
-                      onClick={() => void saveKey(provider.provider)}
-                    >
-                      Save key
-                    </Button>
-                    {provider.configured && (
-                      <Button
-                        variant="ghost"
-                        aria-label={`Remove key for ${provider.provider}`}
-                        onClick={() => void removeKey(provider.provider)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </section>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">Configuration</h1>
+        <p className="text-sm text-muted-foreground">
+          Providers and Models are system-wide; Folders are scoped to the active project.
+        </p>
+      </div>
+      <Tabs defaultValue="providers">
+        <TabsList>
+          <TabsTrigger value="providers">Providers</TabsTrigger>
+          <TabsTrigger value="models">Models</TabsTrigger>
+          <TabsTrigger value="folders">Folders</TabsTrigger>
+        </TabsList>
 
-      <section aria-label="Favorite models">
-        <Card>
-          <CardHeader>
-            <CardTitle>Models</CardTitle>
-            <CardDescription>
-              Star your favorite models; they appear first in the task model picker across all
-              projects.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sortedModels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No models detected on this Kilo installation.
-              </p>
-            ) : (
-              <ul className="divide-y">
-                {sortedModels.map((model) => {
-                  const id = model.id || model.model;
-                  const isFav = favorites.has(model.id) || favorites.has(model.model);
-                  return (
-                    <li key={id} className="flex items-center justify-between py-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{model.model}</p>
-                        <p className="text-xs text-muted-foreground">{model.provider}</p>
-                      </div>
+        <TabsContent value="providers">
+          <Card>
+            <CardHeader>
+              <CardTitle>Providers</CardTitle>
+              <CardDescription>
+                System-wide. API keys are stored encrypted at rest and are never shown again. The
+                task runner injects the key for the selected provider when running the Kilo agent.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {providers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No providers available.</p>
+              ) : (
+                providers.map((provider) => (
+                  <div key={provider.provider} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={`key-${provider.provider}`} className="capitalize">
+                        {provider.provider}
+                      </Label>
+                      {provider.configured ? (
+                        <Badge variant="outline">{provider.masked}</Badge>
+                      ) : (
+                        <Badge variant="secondary">not configured</Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id={`key-${provider.provider}`}
+                        type="password"
+                        placeholder={
+                          provider.configured
+                            ? "Replace the stored key…"
+                            : `Paste your ${provider.provider} API key…`
+                        }
+                        value={keys[provider.provider] ?? ""}
+                        onChange={(e) =>
+                          setKeys((prev) => ({ ...prev, [provider.provider]: e.target.value }))
+                        }
+                      />
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                        onClick={() => void toggleFavorite(id)}
+                        aria-label={`Save key for ${provider.provider}`}
+                        onClick={() => void saveKey(provider.provider)}
                       >
-                        <Star
-                          className={
-                            isFav
-                              ? "h-4 w-4 fill-amber-400 text-amber-400"
-                              : "h-4 w-4 text-muted-foreground"
-                          }
-                          aria-hidden
-                        />
+                        Save key
                       </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+                      {provider.configured && (
+                        <Button
+                          variant="ghost"
+                          aria-label={`Remove key for ${provider.provider}`}
+                          onClick={() => void removeKey(provider.provider)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="models">
+          <Card>
+            <CardHeader>
+              <CardTitle>Models</CardTitle>
+              <CardDescription>
+                System-wide. Star your favorite models; they appear first in the task model picker
+                across all projects.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {sortedModels.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No models detected on this Kilo installation.
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {sortedModels.map((model) => {
+                    const id = model.id || model.model;
+                    const isFav = favorites.has(model.id) || favorites.has(model.model);
+                    return (
+                      <li key={id} className="flex items-center justify-between py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{model.model}</p>
+                          <p className="text-xs text-muted-foreground">{model.provider}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                          onClick={() => void toggleFavorite(id)}
+                        >
+                          <Star
+                            className={
+                              isFav
+                                ? "h-4 w-4 fill-amber-400 text-amber-400"
+                                : "h-4 w-4 text-muted-foreground"
+                            }
+                            aria-hidden
+                          />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="folders">
+          <ProjectFoldersCard />
+        </TabsContent>
+      </Tabs>
 
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
-      <ProjectFoldersCard />
-      <Separator />
     </div>
   );
 }

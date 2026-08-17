@@ -33,6 +33,6 @@ describe("app shell (#24)", () => {
 
   it("renders the correct screen on a deep link", async () => {
     renderAt("/configuration");
-    expect(await screen.findByText("Providers")).toBeInTheDocument();
+    expect((await screen.findAllByText("Providers")).length).toBeGreaterThan(0);
   });
 });

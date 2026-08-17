@@ -9,6 +9,7 @@ export const PROVIDER_ENV_VAR: Record<string, string> = {
   google: "GOOGLE_API_KEY",
   mistral: "MISTRAL_API_KEY",
   deepseek: "DEEPSEEK_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
 };
 
 /**

@@ -82,6 +82,7 @@ function stubApi() {
     if (method === "GET" && url === "/api/settings/providers") {
       return json({
         providers: [
+          { provider: "openrouter", configured: false, masked: null },
           { provider: "anthropic", configured: true, masked: "••••0001" },
           { provider: "openai", configured: false, masked: null },
         ],
@@ -91,6 +92,11 @@ function stubApi() {
       return json({
         models: [
           { id: "anthropic/claude-sonnet-4.5", provider: "anthropic", model: "claude-sonnet-4.5" },
+          {
+            id: "openrouter/deepseek/deepseek-v4",
+            provider: "openrouter",
+            model: "deepseek/deepseek-v4",
+          },
           { id: "openai/gpt-4o", provider: "openai", model: "gpt-4o" },
         ],
       });
@@ -121,12 +127,16 @@ function stubApi() {
 }
 
 describe("factory configuration (#31)", () => {
-  it("lists providers with masked handles and favorite models", async () => {
+  it("shows OpenRouter and other providers, and favorite models in the Models tab", async () => {
+    const user = userEvent.setup();
     stubApi();
     renderConfig();
 
-    expect((await screen.findAllByText("anthropic")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("openrouter")).toBeInTheDocument();
+    expect(await screen.findByText("anthropic")).toBeInTheDocument();
     expect(await screen.findByText("••••0001")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Models" }));
     expect(await screen.findByText("claude-sonnet-4.5")).toBeInTheDocument();
     expect(await screen.findByText("gpt-4o")).toBeInTheDocument();
   });
@@ -136,7 +146,8 @@ describe("factory configuration (#31)", () => {
     const user = userEvent.setup();
     renderConfig();
 
-    const addFav = await screen.findByRole("button", { name: "Add to favorites" });
+    await user.click(screen.getByRole("tab", { name: "Models" }));
+    const addFav = (await screen.findAllByRole("button", { name: "Add to favorites" }))[0]!;
     await user.click(addFav);
 
     await waitFor(() => {
@@ -172,6 +183,7 @@ describe("factory configuration (#31)", () => {
     const user = userEvent.setup();
     renderConfig();
 
+    await user.click(screen.getByRole("tab", { name: "Folders" }));
     expect(await screen.findByText("Backend")).toBeInTheDocument();
 
     await user.type(await screen.findByLabelText("Add a folder"), "Web");

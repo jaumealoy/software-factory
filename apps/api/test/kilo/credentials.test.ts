@@ -26,8 +26,17 @@ describe("provider model -> env mapping", () => {
   it("extracts the provider from a kilo model id and maps to an env var", () => {
     expect(providerOfModel("kilo/anthropic/claude-sonnet-4.5")).toBe("anthropic");
     expect(providerOfModel("anthropic/claude-sonnet-4.5")).toBe("anthropic");
+    expect(providerOfModel("openrouter/deepseek/deepseek-v4")).toBe("openrouter");
     expect(PROVIDER_ENV_VAR.anthropic).toBe("ANTHROPIC_API_KEY");
     expect(PROVIDER_ENV_VAR.openai).toBe("OPENAI_API_KEY");
+    expect(PROVIDER_ENV_VAR.openrouter).toBe("OPENROUTER_API_KEY");
+  });
+
+  it("injects an OpenRouter credential via OPENROUTER_API_KEY", () => {
+    const db = makeDb();
+    setProviderCredential(db, "openrouter", "sk-or-secret", ENCRYPTION_KEY);
+    const env = buildKiloEnv(db, "openrouter/deepseek/deepseek-v4", ENCRYPTION_KEY);
+    expect(env).toEqual({ OPENROUTER_API_KEY: "sk-or-secret" });
   });
 
   it("returns null when no encryption key is configured", () => {

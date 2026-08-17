@@ -28,11 +28,23 @@ export function parseKiloModels(stdout: string): KiloModel[] {
   const models: KiloModel[] = [];
   for (const line of stdout.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed.startsWith("kilo/")) continue;
+    if (!trimmed) continue;
     const parts = trimmed.split("/");
-    if (parts.length < 3) continue;
-    const provider = parts[1] ?? "";
-    const model = parts.slice(2).join("/");
+    if (parts[0] === "kilo") {
+      // Keep the legacy `kilo/<provider>/<model>` form (any provider flag).
+      if (parts.length < 3) continue;
+      const provider = parts[1] ?? "";
+      const model = parts.slice(2).join("/");
+      if (!model.trim()) continue;
+      models.push({ id: trimmed, provider, model });
+      continue;
+    }
+    // Also accept bare `<provider>/<model>` lines (e.g. OpenRouter), filtering obvious noise.
+    if (parts.length < 2) continue;
+    const provider = parts[0] ?? "";
+    const model = parts.slice(1).join("/");
+    if (!/^[a-zA-Z][\w-]*$/.test(provider)) continue;
+    if (!model.trim()) continue;
     models.push({ id: trimmed, provider, model });
   }
   return models;

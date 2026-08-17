@@ -125,6 +125,21 @@ describe("encrypted provider credential storage (#28)", () => {
     expect(res.statusCode).toBe(422);
   });
 
+  it("supports configuring an OpenRouter credential", async () => {
+    const app = await makeServer(ENCRYPTION_KEY);
+    const put = await app.inject({
+      method: "PUT",
+      url: "/api/settings/providers/openrouter",
+      payload: { key: "sk-or-1234" },
+    });
+    expect(put.statusCode).toBe(200);
+    expect(put.json()).toEqual({
+      provider: "openrouter",
+      configured: true,
+      masked: "••••1234",
+    });
+  });
+
   it("removes a credential", async () => {
     const app = await makeServer(ENCRYPTION_KEY);
     await app.inject({

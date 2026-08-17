@@ -134,6 +134,20 @@ describe("kilo model helpers", () => {
     ]);
   });
 
+  it("parses bare provider/model lines including OpenRouter", () => {
+    const models = parseKiloModels(
+      "openrouter/deepseek/deepseek-v4\nanthropic/claude-sonnet-4.5\nSome Header\n----\n",
+    );
+    expect(models).toEqual([
+      {
+        id: "openrouter/deepseek/deepseek-v4",
+        provider: "openrouter",
+        model: "deepseek/deepseek-v4",
+      },
+      { id: "anthropic/claude-sonnet-4.5", provider: "anthropic", model: "claude-sonnet-4.5" },
+    ]);
+  });
+
   it("lists models through the runner", async () => {
     const models = await listAvailableModels(async () => "kilo/anthropic/claude-sonnet-4.5\n");
     expect(models[0]?.model).toBe("claude-sonnet-4.5");

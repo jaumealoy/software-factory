@@ -8,7 +8,15 @@ const CIPHER = "aes-256-gcm";
 const IV_BYTES = 12;
 const KDF_SALT = "software-factory:settings:v1";
 
-export const PROVIDERS = ["openai", "anthropic", "google", "mistral", "deepseek", "kilo"] as const;
+export const PROVIDERS = [
+  "openai",
+  "anthropic",
+  "google",
+  "mistral",
+  "deepseek",
+  "openrouter",
+  "kilo",
+] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 function isProvider(value: string): value is Provider {
