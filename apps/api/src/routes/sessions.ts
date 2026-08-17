@@ -1,8 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { Db } from "../db/index.js";
-import { getSession } from "../domain/sessions.js";
+import { getSession, listChatMessages } from "../domain/sessions.js";
 import type { SessionManager } from "../session/manager.js";
-import { ConcurrencyLimitError } from "../session/manager.js";
+import { ConcurrencyLimitError, SessionClosedError } from "../session/manager.js";
 import { NotFoundError, ValidationError } from "../domain/errors.js";
 import { getTask } from "../domain/tasks.js";
 
@@ -16,6 +16,10 @@ interface StartSessionBody {
   repositoryPath?: string;
   model?: string;
   changeName?: string;
+}
+
+interface SendMessageBody {
+  text?: string;
 }
 
 function sseFrame(event: {
@@ -71,6 +75,40 @@ export const sessionsRoutes: FastifyPluginAsync<SessionsRoutesOptions> = async (
       throw error;
     }
   });
+
+  fastify.get<{ Params: { id: string } }>("/api/sessions/:id/messages", async (request, reply) => {
+    try {
+      getSession(db, request.params.id);
+      return { messages: listChatMessages(db, request.params.id) };
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        return reply.code(404).send({ error: error.message });
+      }
+      throw error;
+    }
+  });
+
+  fastify.post<{ Params: { id: string }; Body: SendMessageBody }>(
+    "/api/sessions/:id/messages",
+    async (request, reply) => {
+      const text = request.body?.text?.trim() ?? "";
+      if (!text) {
+        return reply.code(422).send({ error: "text is required" });
+      }
+      try {
+        const message = sessions.enqueueUserMessage(request.params.id, text);
+        return reply.code(201).send({ message });
+      } catch (error) {
+        if (error instanceof SessionClosedError) {
+          return reply.code(422).send({ error: error.message });
+        }
+        if (error instanceof NotFoundError) {
+          return reply.code(404).send({ error: error.message });
+        }
+        throw error;
+      }
+    },
+  );
 
   fastify.get<{ Params: { id: string } }>("/api/sessions/:id/stream", async (request, reply) => {
     let session;

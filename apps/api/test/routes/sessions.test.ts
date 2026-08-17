@@ -250,3 +250,87 @@ describe("streaming execution session (#22)", () => {
     release();
   });
 });
+
+describe("interactive chat channel (#23)", () => {
+  it("delivers a mid-run user message to the agent channel and records both directions", async () => {
+    const repoPath = makeRepo();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const hangingRunner: TaskRunner = {
+      async run(_context: TaskRunContext, onEvent?: (event: TaskRunEvent) => void) {
+        onEvent?.({
+          type: "started",
+          stage: null,
+          message: "started",
+          timestamp: new Date().toISOString(),
+        });
+        await pending;
+        return {
+          status: "SUCCEEDED",
+          events: [],
+          testsCreated: [],
+          changedFiles: [],
+          verificationCommand: null,
+          verificationOutput: null,
+          verificationPassed: true,
+          message: null,
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+        };
+      },
+    };
+    const { app, task, manager } = await setup({ runner: hangingRunner });
+
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/sessions",
+      payload: { taskId: task.id, repositoryPath: repoPath },
+    });
+    const { sessionId } = start.json() as { sessionId: string };
+
+    const sent = await app.inject({
+      method: "POST",
+      url: `/api/sessions/${sessionId}/messages`,
+      payload: { text: "Use the fast ORM" },
+    });
+    expect(sent.statusCode).toBe(201);
+
+    const channel = manager.getChannel(sessionId);
+    expect(channel.readPendingMessages()).toEqual(["Use the fast ORM"]);
+    channel.writeReply("Understood, switching.");
+
+    const transcript = await app.inject({
+      method: "GET",
+      url: `/api/sessions/${sessionId}/messages`,
+    });
+    const messages = transcript.json().messages as Array<{ direction: string; text: string }>;
+    expect(messages).toEqual([
+      expect.objectContaining({ direction: "user", text: "Use the fast ORM" }),
+      expect.objectContaining({ direction: "agent", text: "Understood, switching." }),
+    ]);
+    release();
+  });
+
+  it("rejects a message after the session has ended", async () => {
+    const repoPath = makeRepo();
+    const { app, task, manager } = await setup({
+      runner: new DeterministicRunner({ testCommand: "pnpm test" }),
+    });
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/sessions",
+      payload: { taskId: task.id, repositoryPath: repoPath },
+    });
+    const { sessionId } = start.json() as { sessionId: string };
+    await manager.awaitCompletion(sessionId);
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/sessions/${sessionId}/messages`,
+      payload: { text: "too late" },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+});

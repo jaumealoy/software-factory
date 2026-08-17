@@ -117,3 +117,59 @@ export function replaySessionEvents(db: Db, sessionId: string, afterId = 0): Sto
     timestamp: row.createdAt.toISOString(),
   }));
 }
+
+export type ChatDirection = "user" | "agent";
+
+export interface ChatMessage {
+  id: number;
+  sessionId: string;
+  direction: ChatDirection;
+  text: string;
+  timestamp: string;
+}
+
+const CHAT_EVENT = {
+  user: "user_message",
+  agent: "agent_message",
+} satisfies Record<ChatDirection, string>;
+
+/** Records a chat message as a session event so it appears in the streamed transcript. */
+export function recordSessionMessage(
+  db: Db,
+  sessionId: string,
+  direction: ChatDirection,
+  text: string,
+): StoredSessionEvent {
+  return appendSessionEvent(db, sessionId, {
+    type: CHAT_EVENT[direction],
+    stage: null,
+    message: direction === "user" ? "You" : "Agent",
+    detail: null,
+    data: { direction, text },
+  });
+}
+
+/** Returns the chat transcript for a session (user + agent messages, in order). */
+export function listChatMessages(db: Db, sessionId: string): ChatMessage[] {
+  const rows = db
+    .select()
+    .from(sessionEvents)
+    .where(eq(sessionEvents.sessionId, sessionId))
+    .orderBy(asc(sessionEvents.id))
+    .all();
+  return rows
+    .filter((row) => row.type === "user_message" || row.type === "agent_message")
+    .map((row) => ({
+      id: row.id,
+      sessionId: row.sessionId,
+      direction: row.type === "agent_message" ? ("agent" as const) : ("user" as const),
+      text: (row.dataJson ? (JSON.parse(row.dataJson) as { text?: string }).text : undefined) ?? "",
+      timestamp: row.createdAt.toISOString(),
+    }));
+}
+
+/** Returns pending user messages the agent has not yet consumed (id > afterId). */
+export function listPendingUserMessages(db: Db, sessionId: string, afterId = 0): ChatMessage[] {
+  const messages = listChatMessages(db, sessionId).filter((message) => message.id > afterId);
+  return messages.filter((message) => message.direction === "user");
+}

@@ -9,6 +9,8 @@ import {
   appendSessionEvent,
   createSession,
   getSession,
+  listPendingUserMessages,
+  recordSessionMessage,
   replaySessionEvents,
   setSessionOutcome,
   type StoredSessionEvent,
@@ -35,6 +37,21 @@ export class ConcurrencyLimitError extends Error {
   }
 }
 
+export class SessionClosedError extends Error {
+  constructor() {
+    super("This session has ended and no longer accepts messages");
+    this.name = "SessionClosedError";
+  }
+}
+
+/** Channel the running agent reads user input from and writes replies to. */
+export interface SessionChannel {
+  /** Pending user messages the agent has not yet consumed (FIFO). */
+  readPendingMessages(): string[];
+  /** The agent records a reply into the session transcript. */
+  writeReply(text: string): void;
+}
+
 const TERMINAL_BY_OUTCOME: Record<RunOutcome, string> = {
   DONE: "session_completed",
   REWORK: "session_failed",
@@ -46,6 +63,7 @@ export class SessionManager {
   private emitter = new EventEmitter();
   private active = 0;
   private runs = new Map<string, Promise<void>>();
+  private chats = new Map<string, { cursor: number }>();
   readonly maxConcurrent: number;
 
   constructor(
@@ -106,6 +124,38 @@ export class SessionManager {
 
   replay(sessionId: string, afterId = 0): StoredSessionEvent[] {
     return replaySessionEvents(this.db, sessionId, afterId);
+  }
+
+  /** Enqueues a user message into the live session; throws SessionClosedError when it has ended. */
+  enqueueUserMessage(sessionId: string, text: string): StoredSessionEvent {
+    const session = getSession(this.db, sessionId);
+    if (session.status !== "RUNNING") {
+      throw new SessionClosedError();
+    }
+    const stored = recordSessionMessage(this.db, sessionId, "user", text);
+    if (!this.chats.has(sessionId)) {
+      this.chats.set(sessionId, { cursor: 0 });
+    }
+    this.dispatch(sessionId, stored);
+    return stored;
+  }
+
+  /** Provides the injected channel the running agent adapter reads/writes during execution. */
+  getChannel(sessionId: string): SessionChannel {
+    return {
+      readPendingMessages: () => {
+        const chat = this.chats.get(sessionId) ?? { cursor: 0 };
+        this.chats.set(sessionId, chat);
+        const pending = listPendingUserMessages(this.db, sessionId, chat.cursor);
+        if (pending.length > 0) {
+          chat.cursor = pending[pending.length - 1]!.id;
+        }
+        return pending.map((message) => message.text);
+      },
+      writeReply: (text) => {
+        this.dispatch(sessionId, recordSessionMessage(this.db, sessionId, "agent", text));
+      },
+    };
   }
 
   private dispatch(sessionId: string, event: StoredSessionEvent): void {
