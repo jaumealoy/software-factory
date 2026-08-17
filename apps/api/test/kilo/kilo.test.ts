@@ -55,14 +55,12 @@ describe("KiloRunner", () => {
 
   it("reports failure with verification evidence on non-zero exit", async () => {
     const executor = {
-      run: vi
-        .fn()
-        .mockResolvedValue({
-          stdout: "",
-          stderr: "TypeError: x is not a function",
-          exitCode: 1,
-          timedOut: false,
-        }),
+      run: vi.fn().mockResolvedValue({
+        stdout: "",
+        stderr: "TypeError: x is not a function",
+        exitCode: 1,
+        timedOut: false,
+      }),
     };
     const runner = new KiloRunner({ executor });
 
