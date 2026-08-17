@@ -3,8 +3,8 @@ import { Outlet } from "react-router-dom";
 import { Group, Panel, Separator, type Layout } from "react-resizable-panels";
 import { Toaster } from "./toast";
 import { Sidebar } from "./components/sidebar";
-import { PlaceholderPane } from "./components/placeholder";
 import { FilePane } from "./components/filePane";
+import { ChatPane } from "./components/chatPane";
 import { ProjectProvider } from "./projectSwitcher";
 import { cn } from "../lib/utils";
 
@@ -66,9 +66,7 @@ export function AppShell() {
           </Panel>
           <SeparatorHandle id="main-separator" />
           <Panel id="chat" defaultSize="20" minSize="12" collapsible className="min-w-0">
-            <PlaceholderPane title="Agent chat">
-              <p>Live agent transcript and chat will render here when a run is streaming.</p>
-            </PlaceholderPane>
+            <ChatPane />
           </Panel>
         </Group>
       </ProjectProvider>

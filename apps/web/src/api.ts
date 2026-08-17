@@ -185,6 +185,33 @@ export interface ProviderCredentialView {
   masked: string | null;
 }
 
+export interface Session {
+  id: string;
+  taskId: string;
+  status: "RUNNING" | "COMPLETED" | "FAILED" | "ABORTED";
+  outcome: string | null;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export interface SessionEvent {
+  id: number;
+  type: string;
+  stage: string | null;
+  message: string | null;
+  detail?: string;
+  data: Record<string, unknown> | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  sessionId: string;
+  direction: "user" | "agent";
+  text: string;
+  timestamp: string;
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   if (!response.ok) {
@@ -289,5 +316,24 @@ export const api = {
       method: "DELETE",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ model }),
+    }),
+
+  startSession: (payload: { taskId: string; repositoryPath: string; model?: string }) =>
+    request<{ sessionId: string; streamUrl: string }>("/api/sessions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  getSession: (sessionId: string) => request<{ session: Session }>(`/api/sessions/${sessionId}`),
+
+  getSessionMessages: (sessionId: string) =>
+    request<{ messages: ChatMessage[] }>(`/api/sessions/${sessionId}/messages`),
+
+  sendSessionMessage: (sessionId: string, text: string) =>
+    request<{ message: SessionEvent }>(`/api/sessions/${sessionId}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
     }),
 };
