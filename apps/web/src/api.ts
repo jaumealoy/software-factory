@@ -204,6 +204,23 @@ export interface SessionEvent {
   data: Record<string, unknown> | null;
 }
 
+export interface AgentChat {
+  id: string;
+  projectId: string | null;
+  title: string;
+  status: "ACTIVE" | "CLOSED";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentChatMessage {
+  id: number;
+  chatId: string;
+  direction: "user" | "agent";
+  text: string;
+  timestamp: string;
+}
+
 export interface ChatMessage {
   id: number;
   sessionId: string;
@@ -370,5 +387,24 @@ export const api = {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ path, content }),
+    }),
+
+  createAgentChat: (payload: { title?: string; projectId?: string }) =>
+    request<{ chat: AgentChat }>("/api/agent-chats", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    }),
+
+  listAgentChats: () => request<{ chats: AgentChat[] }>("/api/agent-chats"),
+
+  getAgentChatMessages: (chatId: string) =>
+    request<{ messages: AgentChatMessage[] }>(`/api/agent-chats/${chatId}/messages`),
+
+  sendAgentChatMessage: (chatId: string, text: string) =>
+    request<{ message: AgentChatMessage }>(`/api/agent-chats/${chatId}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
     }),
 };

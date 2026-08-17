@@ -23,6 +23,7 @@ const STATUS_VARIANT: Record<string, "outline" | "secondary" | "destructive" | "
 
 export function ChatPane() {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,6 +34,62 @@ export function ChatPane() {
   const [launch, setLaunch] = useState<LaunchForm>({ taskId: "", repositoryPath: "" });
   const streamRef = useRef<EventSource | null>(null);
   const lastEventIdRef = useRef(0);
+  const hasThread = Boolean(sessionId || chatId);
+
+  useEffect(() => {
+    if (!chatId) return;
+    let active = true;
+    api
+      .getAgentChatMessages(chatId)
+      .then((res) => {
+        if (!active) return;
+        setMessages(
+          res.messages.map((m) => ({
+            id: m.id,
+            sessionId: chatId,
+            direction: m.direction,
+            text: m.text,
+            timestamp: m.timestamp,
+          })),
+        );
+      })
+      .catch((err) => {
+        if (active) setError(messageOf(err));
+      });
+
+    const source = new EventSource(`/api/agent-chats/${chatId}/stream`);
+    streamRef.current = source;
+    source.onopen = () => setReconnecting(false);
+    source.onmessage = (message) => {
+      try {
+        const payload = JSON.parse((message as MessageEvent).data as string) as {
+          id: number;
+          chatId: string;
+          direction: "user" | "agent";
+          text: string;
+        };
+        lastEventIdRef.current = payload.id;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: payload.id,
+            sessionId: chatId,
+            direction: payload.direction,
+            text: payload.text,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } catch {
+        // ignore malformed frames
+      }
+    };
+    source.onerror = () => setReconnecting(true);
+    return () => {
+      active = false;
+      source.close();
+      streamRef.current = null;
+    };
+  }, [chatId]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -115,13 +172,33 @@ export function ChatPane() {
     }
   }
 
+  async function startChat() {
+    setError(null);
+    setEvents([]);
+    setMessages([]);
+    setStatus(null);
+    setSessionId(null);
+    try {
+      const { chat } = await api.createAgentChat({});
+      setChatId(chat.id);
+      toast.success("New chat started");
+    } catch (err) {
+      setError(messageOf(err));
+      toast.error(messageOf(err));
+    }
+  }
+
   async function send() {
     const text = composer.trim();
-    if (!text || !sessionId || sending) return;
+    if (!text || sending || !hasThread) return;
     setSending(true);
     setComposer("");
     try {
-      await api.sendSessionMessage(sessionId, text);
+      if (chatId) {
+        await api.sendAgentChatMessage(chatId, text);
+      } else if (sessionId) {
+        await api.sendSessionMessage(sessionId, text);
+      }
     } catch (err) {
       setError(messageOf(err));
       toast.error(messageOf(err));
@@ -135,10 +212,15 @@ export function ChatPane() {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-sm font-medium">Agent chat</span>
-        {status && <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>{status}</Badge>}
+        <div className="flex items-center gap-2">
+          {status && <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>{status}</Badge>}
+          <Button variant="outline" size="sm" onClick={() => void startChat()}>
+            New chat
+          </Button>
+        </div>
       </div>
 
-      {!sessionId ? (
+      {!hasThread ? (
         <div className="space-y-2 p-3">
           <p className="text-xs text-muted-foreground">
             Start a task run to stream the agent thought process and chat with it live.
@@ -219,12 +301,15 @@ export function ChatPane() {
                 }}
                 placeholder="Message the agent…"
                 aria-label="Chat message"
-                disabled={status === "COMPLETED" || status === "FAILED" || status === "ABORTED"}
+                disabled={
+                  !!sessionId &&
+                  (status === "COMPLETED" || status === "FAILED" || status === "ABORTED")
+                }
               />
               <Button
                 size="icon"
                 onClick={() => void send()}
-                disabled={!composer.trim() || sending || status !== "RUNNING"}
+                disabled={!composer.trim() || sending || (!!sessionId && status !== "RUNNING")}
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4" />

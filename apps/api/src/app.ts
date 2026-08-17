@@ -16,6 +16,9 @@ import { sessionsRoutes } from "./routes/sessions.js";
 import { filesRoutes } from "./routes/files.js";
 import { diffRoutes } from "./routes/diff.js";
 import { foldersRoutes } from "./routes/folders.js";
+import { agentChatsRoutes } from "./routes/agentChats.js";
+import { AgentChatManager } from "./agent/chat.js";
+import { KiloChatAgent } from "./kilo/chat.js";
 import { SessionManager } from "./session/manager.js";
 import type { WorkflowProvider } from "./workflow/types.js";
 
@@ -31,6 +34,7 @@ export interface BuildAppOptions {
   testCommand?: string;
   encryptionKey?: string;
   sessions?: SessionManager;
+  agentChats?: AgentChatManager;
 }
 
 export async function buildApp(options: BuildAppOptions = {}) {
@@ -65,6 +69,17 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(filesRoutes, { db: db.db });
   await app.register(diffRoutes, { db: db.db });
   await app.register(foldersRoutes, { db: db.db });
+  await app.register(agentChatsRoutes, {
+    db: db.db,
+    chats:
+      options.agentChats ??
+      new AgentChatManager(
+        db.db,
+        new KiloChatAgent({
+          encryptionKey: options.encryptionKey ?? config.FACTORY_ENCRYPTION_KEY,
+        }),
+      ),
+  });
   await app.register(sessionsRoutes, {
     db: db.db,
     sessions:

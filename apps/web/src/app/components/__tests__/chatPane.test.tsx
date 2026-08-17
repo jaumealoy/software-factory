@@ -17,7 +17,7 @@ class FakeEventSource {
   close(): void {
     this.closed = true;
   }
-  trigger(event: { id: number; type: string; message?: string; data?: Record<string, unknown> }) {
+  trigger(event: { id: number } & Record<string, unknown>) {
     this.onmessage?.({ data: JSON.stringify(event) });
   }
 }
@@ -76,6 +76,38 @@ function stubApi() {
         201,
       );
     }
+    if (method === "POST" && url === "/api/agent-chats") {
+      return json(
+        {
+          chat: {
+            id: "c1",
+            projectId: null,
+            title: "New chat",
+            status: "ACTIVE",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        201,
+      );
+    }
+    if (method === "GET" && url === "/api/agent-chats/c1/messages") {
+      return json({ messages: [] });
+    }
+    if (method === "POST" && url === "/api/agent-chats/c1/messages") {
+      return json(
+        {
+          message: {
+            id: 5,
+            chatId: "c1",
+            direction: "user",
+            text: "hello from chat",
+            timestamp: new Date().toISOString(),
+          },
+        },
+        201,
+      );
+    }
     return {
       ok: false,
       status: 404,
@@ -87,6 +119,36 @@ function stubApi() {
 }
 
 describe("live chat pane (#26)", () => {
+  it("starts a new standalone agent chat, streams a reply, and sends a message", async () => {
+    const fetchMock = stubApi();
+    const user = userEvent.setup();
+    render(<ChatPane />);
+
+    await user.click(screen.getByRole("button", { name: "New chat" }));
+
+    const source = await waitFor(() => {
+      const s = lastSource;
+      expect(s).not.toBeNull();
+      return s!;
+    });
+    expect(source.url).toBe("/api/agent-chats/c1/stream");
+
+    source.trigger({ id: 2, chatId: "c1", direction: "agent", text: "How can I help?" });
+    expect(await screen.findByText("How can I help?")).toBeInTheDocument();
+
+    const composer = await screen.findByLabelText("Chat message");
+    await user.type(composer, "Refactor the auth flow");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]) =>
+            String(url) === "/api/agent-chats/c1/messages" && init?.method === "POST",
+        ),
+      ).toBe(true);
+    });
+  });
   it("starts a run session and shows the streamed transcript", async () => {
     stubApi();
     const user = userEvent.setup();

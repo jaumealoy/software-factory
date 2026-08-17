@@ -235,6 +235,35 @@ export const sessionEvents = sqliteTable(
   (table) => [index("session_events_session_id_idx").on(table.sessionId)],
 );
 
+export const agentChats = sqliteTable(
+  "agent_chats",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").references(() => factoryProjects.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull().default("New chat"),
+    status: text("status").notNull().default("ACTIVE"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("agent_chats_project_id_idx").on(table.projectId)],
+);
+
+export const agentChatMessages = sqliteTable(
+  "agent_chat_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => agentChats.id, { onDelete: "cascade" }),
+    direction: text("direction").notNull(),
+    text: text("text").notNull(),
+    createdAt,
+  },
+  (table) => [index("agent_chat_messages_chat_idx").on(table.chatId)],
+);
+
 export type FactoryProject = typeof factoryProjects.$inferSelect;
 export type NewFactoryProject = typeof factoryProjects.$inferInsert;
 
@@ -272,3 +301,9 @@ export type NewExecutionSession = typeof executionSessions.$inferInsert;
 
 export type SessionEvent = typeof sessionEvents.$inferSelect;
 export type NewSessionEvent = typeof sessionEvents.$inferInsert;
+
+export type AgentChat = typeof agentChats.$inferSelect;
+export type NewAgentChat = typeof agentChats.$inferInsert;
+
+export type AgentChatMessage = typeof agentChatMessages.$inferSelect;
+export type NewAgentChatMessage = typeof agentChatMessages.$inferInsert;
