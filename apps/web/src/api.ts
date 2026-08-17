@@ -179,6 +179,12 @@ export interface FileContent {
   binary: boolean;
 }
 
+export interface ProviderCredentialView {
+  provider: string;
+  configured: boolean;
+  masked: string | null;
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   if (!response.ok) {
@@ -190,6 +196,9 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
       // keep default
     }
     throw new Error(message);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return (await response.json()) as T;
 }
@@ -252,4 +261,33 @@ export const api = {
     request<FileContent>(
       `/api/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`,
     ),
+
+  listProviderCredentials: () =>
+    request<{ providers: ProviderCredentialView[] }>("/api/settings/providers"),
+
+  setProviderCredential: (provider: string, key: string) =>
+    request<ProviderCredentialView>(`/api/settings/providers/${provider}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key }),
+    }),
+
+  removeProviderCredential: (provider: string) =>
+    request<null>(`/api/settings/providers/${provider}`, { method: "DELETE" }),
+
+  listFavorites: () => request<{ models: string[] }>("/api/favorites"),
+
+  addFavorite: (model: string) =>
+    request<{ model: string; models: string[] }>("/api/favorites", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model }),
+    }),
+
+  removeFavorite: (model: string) =>
+    request<null>("/api/favorites", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model }),
+    }),
 };
