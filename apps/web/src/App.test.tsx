@@ -1,10 +1,12 @@
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { App } from "./App";
+import { appRoutes } from "./app/router";
 import type { ChangeDetail, Project } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  sessionStorage.clear();
 });
 
 type Handler = () => unknown | Promise<unknown>;
@@ -66,8 +68,13 @@ function makeDetail(overrides: Partial<ChangeDetail> = {}): ChangeDetail {
   };
 }
 
-describe("App", () => {
-  it("submits a request and navigates to the change detail", async () => {
+function renderRouter(initialEntries: string[]) {
+  const router = createMemoryRouter(appRoutes, { initialEntries });
+  return render(<RouterProvider router={router} />);
+}
+
+describe("dashboard routing", () => {
+  it("submits a request on the home route and navigates to the change detail", async () => {
     stubApi({
       "GET /api/projects": () => [project],
       "GET /api/changes": () => [],
@@ -86,10 +93,9 @@ describe("App", () => {
       "GET /api/changes/c1": () => makeDetail(),
     });
 
-    render(<App />);
+    renderRouter(["/"]);
 
     expect(await screen.findByText("Start a request")).toBeInTheDocument();
-
     fireEvent.change(screen.getByPlaceholderText("Add Google OAuth login"), {
       target: { value: "Add Google OAuth login" },
     });
@@ -106,7 +112,7 @@ describe("App", () => {
     expect(screen.getByText("Add Google OAuth")).toBeInTheDocument();
   });
 
-  it("renders a pending decision and resolves it", async () => {
+  it("renders a pending decision on a deep-linked change detail and resolves it", async () => {
     let detail = makeDetail({
       pendingDecisions: [
         {
@@ -124,8 +130,6 @@ describe("App", () => {
     });
 
     stubApi({
-      "GET /api/projects": () => [project],
-      "GET /api/changes": () => [{ ...detail.change }],
       "GET /api/changes/c1": () => detail,
       "POST /api/decisions/dec1/resolve": () => {
         detail = makeDetail();
@@ -137,9 +141,7 @@ describe("App", () => {
       },
     });
 
-    render(<App />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Add Google OAuth" }));
+    renderRouter(["/changes/c1"]);
 
     expect(await screen.findByText("Decision needed")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
@@ -147,5 +149,21 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.queryByText("Decision needed")).not.toBeInTheDocument();
     });
+  });
+
+  it("navigates between sections and renders the not-found page", async () => {
+    stubApi({
+      "GET /api/projects": () => [project],
+      "GET /api/changes": () => [{ ...makeDetail().change }],
+    });
+
+    const { unmount } = renderRouter(["/"]);
+
+    fireEvent.click(await screen.findByRole("link", { name: "Changes" }));
+    expect(await screen.findByRole("heading", { name: "Changes" })).toBeInTheDocument();
+
+    unmount();
+    renderRouter(["/unknown/route"]);
+    expect(await screen.findByText("Page not found")).toBeInTheDocument();
   });
 });
