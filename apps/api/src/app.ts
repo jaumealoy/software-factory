@@ -13,6 +13,7 @@ import { tasksRoutes } from "./routes/tasks.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { favoritesRoutes } from "./routes/favorites.js";
 import { sessionsRoutes } from "./routes/sessions.js";
+import { filesRoutes } from "./routes/files.js";
 import { SessionManager } from "./session/manager.js";
 import type { WorkflowProvider } from "./workflow/types.js";
 
@@ -59,6 +60,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     encryptionKey: options.encryptionKey ?? config.FACTORY_ENCRYPTION_KEY,
   });
   await app.register(favoritesRoutes, { db: db.db });
+  await app.register(filesRoutes, { db: db.db });
   await app.register(sessionsRoutes, {
     db: db.db,
     sessions:

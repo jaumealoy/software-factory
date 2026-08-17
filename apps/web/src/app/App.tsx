@@ -4,6 +4,7 @@ import { Group, Panel, Separator, type Layout } from "react-resizable-panels";
 import { Toaster } from "./toast";
 import { Sidebar } from "./components/sidebar";
 import { PlaceholderPane } from "./components/placeholder";
+import { FilePane } from "./components/filePane";
 import { ProjectProvider } from "./projectSwitcher";
 import { cn } from "../lib/utils";
 
@@ -55,12 +56,7 @@ export function AppShell() {
           className="flex-1"
         >
           <Panel id="files" defaultSize="18" minSize="10" collapsible className="min-w-0">
-            <PlaceholderPane title="Project files">
-              <p>
-                Browse the repository here. The file tree and editor arrive with the Project files
-                workspace.
-              </p>
-            </PlaceholderPane>
+            <FilePane />
           </Panel>
           <SeparatorHandle id="files-separator" />
           <Panel id="main" defaultSize="62" minSize="30" className="min-w-0">

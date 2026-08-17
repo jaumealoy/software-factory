@@ -158,6 +158,27 @@ export interface CreateChangePayload {
   repositoryPath: string;
 }
 
+export interface FileEntry {
+  name: string;
+  path: string;
+  type: "dir" | "file";
+  size: number | null;
+}
+
+export interface DirectoryListing {
+  exists: boolean;
+  path: string;
+  entries: FileEntry[];
+  message?: string;
+}
+
+export interface FileContent {
+  path: string;
+  content: string;
+  size: number;
+  binary: boolean;
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   if (!response.ok) {
@@ -221,4 +242,14 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     }),
+
+  listFiles: (projectId: string, dirPath?: string) =>
+    request<DirectoryListing>(
+      `/api/projects/${projectId}/files${dirPath ? `?path=${encodeURIComponent(dirPath)}` : ""}`,
+    ),
+
+  readFileContent: (projectId: string, path: string) =>
+    request<FileContent>(
+      `/api/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`,
+    ),
 };
