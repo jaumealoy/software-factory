@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defaultDatabasePath } from "./paths.js";
+import dotenv from "dotenv";
 
 const configSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -17,5 +18,6 @@ const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  dotenv.config();
   return configSchema.parse(env);
 }

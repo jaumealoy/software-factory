@@ -38,6 +38,13 @@ import {
 } from "./projects.js";
 import type { ChangeStatus, TaskStatus } from "./statuses.js";
 import {
+  addFolder,
+  listFolders,
+  removeFolder,
+  setActiveFolder,
+  type WorkFolder,
+} from "./folders.js";
+import {
   addFavoriteModel,
   isFavoriteModel,
   listFavoriteModels,
@@ -99,6 +106,22 @@ export class FactoryStore {
 
   async addRepository(input: AddRepositoryInput): Promise<Repository> {
     return addRepository(this.db, input);
+  }
+
+  async listFolders(projectId: string): Promise<WorkFolder[]> {
+    return listFolders(this.db, projectId);
+  }
+
+  async addFolder(projectId: string, input: { name: string; path: string }): Promise<WorkFolder> {
+    return addFolder(this.db, projectId, input);
+  }
+
+  async setActiveFolder(projectId: string, folderId: string): Promise<WorkFolder[]> {
+    return setActiveFolder(this.db, projectId, folderId);
+  }
+
+  async removeFolder(projectId: string, folderId: string): Promise<WorkFolder[]> {
+    return removeFolder(this.db, projectId, folderId);
   }
 
   async createChange(input: CreateChangeInput): Promise<Change> {
