@@ -1,9 +1,18 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChatPane } from "../chatPane";
 
 let lastSource: FakeEventSource | null = null;
+
+function renderPane(url = "/") {
+  return render(
+    <MemoryRouter initialEntries={[url]}>
+      <ChatPane />
+    </MemoryRouter>,
+  );
+}
 
 class FakeEventSource {
   onopen: (() => void) | null = null;
@@ -119,10 +128,36 @@ function stubApi() {
 }
 
 describe("live chat pane (#26)", () => {
+  it("attaches to a running session from the URL (?session=)", async () => {
+    const fetchMock = stubApi();
+    const user = userEvent.setup();
+    renderPane("/?session=s1");
+
+    expect(await screen.findByText("hi")).toBeInTheDocument();
+    const source = await waitFor(() => {
+      const s = lastSource;
+      expect(s).not.toBeNull();
+      return s!;
+    });
+    expect(source.url).toBe("/api/sessions/s1/stream");
+
+    const composer = await screen.findByLabelText("Chat message");
+    await user.type(composer, "hello attached");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]) => String(url) === "/api/sessions/s1/messages" && init?.method === "POST",
+        ),
+      ).toBe(true);
+    });
+  });
+
   it("starts a new standalone agent chat, streams a reply, and sends a message", async () => {
     const fetchMock = stubApi();
     const user = userEvent.setup();
-    render(<ChatPane />);
+    renderPane();
 
     await user.click(screen.getByRole("button", { name: "New chat" }));
 
@@ -152,7 +187,7 @@ describe("live chat pane (#26)", () => {
   it("starts a run session and shows the streamed transcript", async () => {
     stubApi();
     const user = userEvent.setup();
-    render(<ChatPane />);
+    renderPane();
 
     await user.type(await screen.findByLabelText("Task id"), "t1");
     await user.type(await screen.findByLabelText("Repository path"), "/tmp/repo");
@@ -172,7 +207,7 @@ describe("live chat pane (#26)", () => {
   it("sends a user message to the session channel", async () => {
     const fetchMock = stubApi();
     const user = userEvent.setup();
-    render(<ChatPane />);
+    renderPane();
 
     await user.type(await screen.findByLabelText("Task id"), "t1");
     await user.type(await screen.findByLabelText("Repository path"), "/tmp/repo");

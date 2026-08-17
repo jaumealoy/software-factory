@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TaskExecutionPanel } from "../taskExecution";
@@ -60,11 +61,13 @@ describe("TaskExecutionPanel", () => {
     const onTaskUpdated = vi.fn();
 
     render(
-      <TaskExecutionPanel
-        tasks={[task("t1")]}
-        repositoryPath="/tmp/repo"
-        onTaskUpdated={onTaskUpdated}
-      />,
+      <MemoryRouter>
+        <TaskExecutionPanel
+          tasks={[task("t1")]}
+          repositoryPath="/tmp/repo"
+          onTaskUpdated={onTaskUpdated}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(await screen.findByRole("combobox"));
@@ -89,11 +92,13 @@ describe("TaskExecutionPanel", () => {
     });
 
     render(
-      <TaskExecutionPanel
-        tasks={[task("t1")]}
-        repositoryPath="/tmp/repo"
-        onTaskUpdated={() => undefined}
-      />,
+      <MemoryRouter>
+        <TaskExecutionPanel
+          tasks={[task("t1")]}
+          repositoryPath="/tmp/repo"
+          onTaskUpdated={() => undefined}
+        />
+      </MemoryRouter>,
     );
 
     const runButton = await screen.findByRole("button", { name: "Run" });
@@ -108,16 +113,24 @@ describe("TaskExecutionPanel", () => {
       "GET /api/tasks/t1/runs": () => ({ runs: [] }),
     });
     const { rerender } = render(
-      <TaskExecutionPanel
-        tasks={[task("t1", "DONE")]}
-        repositoryPath="/tmp/repo"
-        onTaskUpdated={() => undefined}
-      />,
+      <MemoryRouter>
+        <TaskExecutionPanel
+          tasks={[task("t1", "DONE")]}
+          repositoryPath="/tmp/repo"
+          onTaskUpdated={() => undefined}
+        />
+      </MemoryRouter>,
     );
     expect(screen.getByRole("button", { name: "Run" })).toBeDisabled();
 
     rerender(
-      <TaskExecutionPanel tasks={[task("t1")]} repositoryPath="" onTaskUpdated={() => undefined} />,
+      <MemoryRouter>
+        <TaskExecutionPanel
+          tasks={[task("t1")]}
+          repositoryPath=""
+          onTaskUpdated={() => undefined}
+        />
+      </MemoryRouter>,
     );
     expect(screen.getByRole("button", { name: "Run" })).toBeDisabled();
   });

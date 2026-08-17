@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   api,
@@ -41,6 +42,21 @@ export function TaskExecutionPanel({
   const [runsByTask, setRunsByTask] = useState<Record<string, TaskRunRecord[]>>({});
   const [busyByTask, setBusyByTask] = useState<Record<string, boolean>>({});
   const [lastResultByTask, setLastResultByTask] = useState<Record<string, TaskRunResult>>({});
+  const [, setSearchParams] = useSearchParams();
+
+  async function openChat(task: TaskItem) {
+    if (!repositoryPath) return;
+    try {
+      const { sessionId } = await api.startSession({
+        taskId: task.id,
+        repositoryPath,
+      });
+      setSearchParams({ session: sessionId });
+      toast.success("Chat attached to the running session");
+    } catch (err) {
+      toast.error(messageOf(err));
+    }
+  }
 
   useEffect(() => {
     api
@@ -129,6 +145,7 @@ export function TaskExecutionPanel({
                     if (value) void changeModel(task, value);
                   }}
                   onRun={() => void run(task)}
+                  onOpenChat={() => void openChat(task)}
                 />
               ))}
             </TableBody>
@@ -149,6 +166,7 @@ function TaskExecutionRow({
   runs,
   onModelChange,
   onRun,
+  onOpenChat,
 }: {
   task: TaskItem;
   models: KiloModel[];
@@ -159,6 +177,7 @@ function TaskExecutionRow({
   runs: TaskRunRecord[];
   onModelChange: (value: string | null) => void;
   onRun: () => void;
+  onOpenChat: () => void;
 }) {
   return (
     <TableRow>
@@ -187,9 +206,14 @@ function TaskExecutionRow({
         </Select>
       </TableCell>
       <TableCell className="text-right">
-        <Button size="sm" variant="outline" disabled={disabled} onClick={onRun}>
-          {busy ? "Running…" : "Run"}
-        </Button>
+        <div className="flex items-center justify-end gap-2">
+          <Button size="sm" variant="ghost" disabled={disabled} onClick={onOpenChat}>
+            Open chat
+          </Button>
+          <Button size="sm" variant="outline" disabled={disabled} onClick={onRun}>
+            {busy ? "Running…" : "Run"}
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );

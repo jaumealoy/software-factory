@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Send } from "lucide-react";
 import { api, type ChatMessage, type SessionEvent } from "../../api";
@@ -34,7 +35,19 @@ export function ChatPane() {
   const [launch, setLaunch] = useState<LaunchForm>({ taskId: "", repositoryPath: "" });
   const streamRef = useRef<EventSource | null>(null);
   const lastEventIdRef = useRef(0);
+  const [searchParams] = useSearchParams();
   const hasThread = Boolean(sessionId || chatId);
+
+  useEffect(() => {
+    const attached = searchParams.get("session");
+    if (attached && !sessionId && !chatId) {
+      setSessionId(attached);
+      setChatId(null);
+      setEvents([]);
+      setMessages([]);
+      setStatus(null);
+    }
+  }, [searchParams, sessionId, chatId]);
 
   useEffect(() => {
     if (!chatId) return;
