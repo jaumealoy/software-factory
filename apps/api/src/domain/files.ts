@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { NotFoundError, ValidationError } from "./errors.js";
 
@@ -95,6 +95,24 @@ export function readFileContent(root: string, relPath: string): FileContent {
     size: buffer.length,
     binary: false,
   };
+}
+
+/** Writes editable text content to the repo working tree (no commit). Returns the saved file. */
+export function writeFileContent(root: string, relPath: string, content: string): FileContent {
+  if (relPath === "." || relPath === "") {
+    throw new ValidationError("A file path is required");
+  }
+  const target = resolveToRoot(root, relPath);
+  if (existsSync(target) && statSync(target).isDirectory()) {
+    throw new ValidationError(`${relPath} is a directory`);
+  }
+  const buffer = Buffer.from(content ?? "", "utf8");
+  if (buffer.length > MAX_FILE_BYTES) {
+    throw new ValidationError(`File exceeds the ${MAX_FILE_BYTES}-byte save limit`);
+  }
+  mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(target, buffer);
+  return { path: relPath, content: buffer.toString("utf8"), size: buffer.length, binary: false };
 }
 
 function normalizePosix(value: string): string {

@@ -4,6 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FilePane } from "../filePane";
 import { ProjectProvider } from "../../projectSwitcher";
 
+vi.mock("@monaco-editor/react", () => ({
+  default: ({ value }: { value: string }) => (
+    <textarea data-testid="monaco" value={value} readOnly />
+  ),
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.clear();
@@ -92,7 +98,8 @@ describe("project file pane (#25)", () => {
 
     await user.click(screen.getByText("app.ts"));
     await waitFor(() => {
-      expect(screen.getByText(/export const ok = true/)).toBeInTheDocument();
+      const editor = screen.getByTestId("monaco") as HTMLTextAreaElement;
+      expect(editor.value).toContain("export const ok = true");
     });
   });
 });

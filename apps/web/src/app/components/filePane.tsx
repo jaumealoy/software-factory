@@ -4,6 +4,7 @@ import { api, type DirectoryListing, type FileEntry, type FileContent } from "..
 import { cn } from "../../lib/utils";
 import { useProject } from "../projectSwitcher";
 import { DiffPane } from "./diffPane";
+import { EditorPane } from "./editorPane";
 
 function TreeRow({
   depth,
@@ -188,11 +189,12 @@ export function FilePane() {
             {previewError && <p className="p-3 text-sm text-destructive">{previewError}</p>}
           </div>
           {preview && (
-            <div className="border-t border-border">
-              <div className="truncate px-3 py-1.5 text-xs text-muted-foreground">
-                {preview.path}
-              </div>
-              <pre className="max-h-40 overflow-auto p-3 text-xs">{preview.content}</pre>
+            <div className="h-1/2 border-t border-border">
+              <EditorPane
+                projectId={activeProjectId}
+                filePath={preview.path}
+                initialValue={preview.content}
+              />
             </div>
           )}
           {loadingPath && (

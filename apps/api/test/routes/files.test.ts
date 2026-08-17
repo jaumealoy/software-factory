@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
@@ -126,5 +126,37 @@ describe("project file browser (#25)", () => {
     const res = await app.inject({ method: "GET", url: `/api/projects/${projectId}/files` });
     expect(res.statusCode).toBe(200);
     expect(res.json().exists).toBe(false);
+  });
+
+  it("writes a file to the working tree and reads it back", async () => {
+    const root = makeRepo();
+    const { app, projectId } = await makeServer(root);
+    const target = path.join(root, "src", "app.ts");
+
+    const put = await app.inject({
+      method: "PUT",
+      url: `/api/projects/${projectId}/files`,
+      payload: { path: "src/app.ts", content: "export const edited = true;\n" },
+    });
+    expect(put.statusCode).toBe(200);
+    expect(put.json().content).toContain("export const edited = true");
+
+    const read = await app.inject({
+      method: "GET",
+      url: `/api/projects/${projectId}/files/content?path=${encodeURIComponent("src/app.ts")}`,
+    });
+    expect(read.json().content).toContain("export const edited = true");
+    expect(readFileSync(target, "utf8")).toContain("export const edited = true");
+  });
+
+  it("rejects writing outside the repository root", async () => {
+    const root = makeRepo();
+    const { app, projectId } = await makeServer(root);
+    const put = await app.inject({
+      method: "PUT",
+      url: `/api/projects/${projectId}/files`,
+      payload: { path: "../../escape.txt", content: "x" },
+    });
+    expect(put.statusCode).toBe(422);
   });
 });

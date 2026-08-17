@@ -364,4 +364,11 @@ export const api = {
 
   getWorkingDiff: (projectId: string) =>
     request<{ diff: WorkingDiff }>(`/api/projects/${projectId}/diff`),
+
+  saveFile: (projectId: string, path: string, content: string) =>
+    request<FileContent>(`/api/projects/${projectId}/files`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path, content }),
+    }),
 };

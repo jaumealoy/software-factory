@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { Db } from "../db/index.js";
 import { NotFoundError, ValidationError } from "../domain/errors.js";
-import { listDirectory, readFileContent } from "../domain/files.js";
+import { listDirectory, readFileContent, writeFileContent } from "../domain/files.js";
 import { defaultRootResolver } from "./repoRoot.js";
 
 export interface FilesRoutesOptions {
@@ -54,4 +54,26 @@ export const filesRoutes: FastifyPluginAsync<FilesRoutesOptions> = async (fastif
       }
     },
   );
+
+  fastify.put<{
+    Params: { projectId: string };
+    Body: { path?: string; content?: string };
+  }>("/api/projects/:projectId/files", async (request, reply) => {
+    const filePath = request.body?.path;
+    if (!filePath) {
+      return reply.code(422).send({ error: "path is required" });
+    }
+    const root = resolveRoot(request.params.projectId);
+    if (!root) {
+      return reply.code(404).send({ error: "No repository configured for this project" });
+    }
+    try {
+      return writeFileContent(root, filePath, request.body.content ?? "");
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return reply.code(422).send({ error: error.message });
+      }
+      throw error;
+    }
+  });
 };
