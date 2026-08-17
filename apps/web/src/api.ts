@@ -343,6 +343,23 @@ export const api = {
   listFolders: (projectId: string) =>
     request<{ folders: WorkFolder[] }>(`/api/projects/${projectId}/folders`),
 
+  addFolder: (projectId: string, input: { name: string; path: string }) =>
+    request<{ folder: WorkFolder }>(`/api/projects/${projectId}/folders`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+
+  setActiveFolder: (projectId: string, folderId: string) =>
+    request<{ folders: WorkFolder[] }>(`/api/projects/${projectId}/folders/${folderId}`, {
+      method: "PATCH",
+    }),
+
+  removeFolder: (projectId: string, folderId: string) =>
+    request<{ folders: WorkFolder[] }>(`/api/projects/${projectId}/folders/${folderId}`, {
+      method: "DELETE",
+    }),
+
   listProviderCredentials: () =>
     request<{ providers: ProviderCredentialView[] }>("/api/settings/providers"),
 

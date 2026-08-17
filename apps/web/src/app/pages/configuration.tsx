@@ -15,6 +15,7 @@ import { Label } from "../../components/ui/label";
 import { Badge } from "../../components/ui/badge";
 import { Separator } from "../../components/ui/separator";
 import { messageOf } from "../domainViews";
+import { ProjectFoldersCard } from "../components/projectFoldersCard";
 
 export function ConfigurationPage() {
   const [providers, setProviders] = useState<ProviderCredentialView[]>([]);
@@ -213,6 +214,7 @@ export function ConfigurationPage() {
           {error}
         </p>
       )}
+      <ProjectFoldersCard />
       <Separator />
     </div>
   );
