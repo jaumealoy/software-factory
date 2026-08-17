@@ -12,6 +12,7 @@ describe("app shell (#24)", () => {
   it("renders the sidebar icon entries", () => {
     renderAt("/");
     expect(screen.getByLabelText("Primary")).toBeInTheDocument();
+    expect(screen.getByLabelText("Active project")).toBeInTheDocument();
     for (const label of [
       "Feature requests",
       "Changes",

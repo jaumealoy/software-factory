@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { api, type ChangeSummary, type Project } from "../../api";
+import { api, type ChangeSummary } from "../../api";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -22,11 +22,11 @@ import {
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import { messageOf, statusBadgeVariant } from "../domainViews";
+import { useProject } from "../projectSwitcher";
 
 export function HomePage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState("");
+  const { projects, ready, activeProjectId, setActiveProjectId } = useProject();
   const [title, setTitle] = useState("");
   const [requestText, setRequestText] = useState("");
   const [repositoryPath, setRepositoryPath] = useState("");
@@ -36,12 +36,7 @@ export function HomePage() {
 
   async function load() {
     try {
-      const [projectList, changeList] = await Promise.all([api.listProjects(), api.listChanges()]);
-      setProjects(projectList);
-      setChanges(changeList);
-      if (projectList.length > 0) {
-        setProjectId((current) => current || (projectList[0]?.id ?? ""));
-      }
+      setChanges(await api.listChanges(activeProjectId ?? undefined));
     } catch (err) {
       setError(messageOf(err));
     }
@@ -49,14 +44,19 @@ export function HomePage() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [activeProjectId]);
 
   async function submitRequest() {
     if (busy) return;
     try {
       setBusy(true);
       setError(null);
-      const response = await api.createChange({ projectId, title, requestText, repositoryPath });
+      const response = await api.createChange({
+        projectId: activeProjectId ?? "",
+        title,
+        requestText,
+        repositoryPath,
+      });
       sessionStorage.setItem("factory.repositoryPath", repositoryPath);
       toast.success("Request accepted");
       navigate(`/changes/${response.workflow.changeId}`);
@@ -90,10 +90,11 @@ export function HomePage() {
               <div className="space-y-1.5">
                 <Label htmlFor="project">Project</Label>
                 <Select
-                  value={projectId}
+                  value={activeProjectId ?? ""}
                   onValueChange={(value) => {
-                    if (value) setProjectId(value);
+                    if (value) setActiveProjectId(value);
                   }}
+                  disabled={!ready || projects.length === 0}
                 >
                   <SelectTrigger id="project">
                     <SelectValue placeholder="Select a project" />
@@ -137,7 +138,7 @@ export function HomePage() {
                   placeholder="/path/to/product/repo"
                 />
               </div>
-              <Button type="submit" disabled={busy || !projectId}>
+              <Button type="submit" disabled={busy || !activeProjectId}>
                 {busy ? "Running…" : "Run factory"}
               </Button>
               {error && (

@@ -201,7 +201,10 @@ export const api = {
 
   getTaskRuns: (taskId: string) => request<{ runs: TaskRunRecord[] }>(`/api/tasks/${taskId}/runs`),
 
-  listChanges: () => request<ChangeSummary[]>("/api/changes"),
+  listChanges: (projectId?: string) =>
+    request<ChangeSummary[]>(
+      `/api/changes${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`,
+    ),
 
   getChange: (changeId: string) => request<ChangeDetail>(`/api/changes/${changeId}`),
 

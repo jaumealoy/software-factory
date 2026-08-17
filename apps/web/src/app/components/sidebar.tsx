@@ -12,6 +12,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useProject } from "../projectSwitcher";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 
 interface NavEntry {
   to: string;
@@ -38,6 +46,7 @@ export function Sidebar() {
       return false;
     }
   });
+  const { projects, ready, activeProjectId, setActiveProjectId } = useProject();
 
   function toggle() {
     const next = !collapsed;
@@ -61,6 +70,30 @@ export function Sidebar() {
         <Factory className="h-5 w-5 shrink-0 text-primary" aria-hidden />
         {!collapsed && <span className="truncate text-sm font-semibold">Software Factory</span>}
       </div>
+      {!collapsed && (
+        <div className="border-b border-border p-2">
+          <Select
+            value={activeProjectId ?? ""}
+            onValueChange={(value) => {
+              if (value) setActiveProjectId(value);
+            }}
+            disabled={!ready || projects.length === 0}
+          >
+            <SelectTrigger aria-label="Active project">
+              <SelectValue
+                placeholder={ready && projects.length === 0 ? "No projects" : "Project"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <nav className="flex flex-1 flex-col gap-1 p-2" aria-label="Primary">
         {NAV_ENTRIES.map((entry) => (
           <NavLink
