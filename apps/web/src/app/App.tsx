@@ -5,7 +5,9 @@ import { Toaster } from "./toast";
 import { Sidebar } from "./components/sidebar";
 import { FilePane } from "./components/filePane";
 import { ChatPane } from "./components/chatPane";
+import { EditorWorkspacePane } from "./components/editorWorkspacePane";
 import { ProjectProvider } from "./projectSwitcher";
+import { EditorWorkspaceProvider, useEditorWorkspace } from "./editorWorkspace";
 import { cn } from "../lib/utils";
 
 const LAYOUT_KEY = "factory.workspaceLayout";
@@ -32,6 +34,18 @@ function SeparatorHandle({ id }: { id: string }) {
   );
 }
 
+function MainPane() {
+  const { hasTabs } = useEditorWorkspace();
+  if (hasTabs) {
+    return <EditorWorkspacePane />;
+  }
+  return (
+    <main className="h-full overflow-auto p-4 lg:p-6">
+      <Outlet />
+    </main>
+  );
+}
+
 export function AppShell() {
   const [layout, setLayout] = useState<Layout | undefined>(loadLayout);
 
@@ -47,28 +61,28 @@ export function AppShell() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <ProjectProvider>
-        <Sidebar />
-        <Group
-          orientation="horizontal"
-          id="factory-workspace"
-          defaultLayout={layout}
-          onLayoutChange={handleLayoutChange}
-          className="flex-1"
-        >
-          <Panel id="files" defaultSize="18" minSize="10" collapsible className="min-w-0">
-            <FilePane />
-          </Panel>
-          <SeparatorHandle id="files-separator" />
-          <Panel id="main" defaultSize="62" minSize="30" className="min-w-0">
-            <main className="h-full overflow-auto p-4 lg:p-6">
-              <Outlet />
-            </main>
-          </Panel>
-          <SeparatorHandle id="main-separator" />
-          <Panel id="chat" defaultSize="20" minSize="12" collapsible className="min-w-0">
-            <ChatPane />
-          </Panel>
-        </Group>
+        <EditorWorkspaceProvider>
+          <Sidebar />
+          <Group
+            orientation="horizontal"
+            id="factory-workspace"
+            defaultLayout={layout}
+            onLayoutChange={handleLayoutChange}
+            className="flex-1"
+          >
+            <Panel id="files" defaultSize="18" minSize="10" collapsible className="min-w-0">
+              <FilePane />
+            </Panel>
+            <SeparatorHandle id="files-separator" />
+            <Panel id="main" defaultSize="62" minSize="30" className="min-w-0">
+              <MainPane />
+            </Panel>
+            <SeparatorHandle id="main-separator" />
+            <Panel id="chat" defaultSize="20" minSize="12" collapsible className="min-w-0">
+              <ChatPane />
+            </Panel>
+          </Group>
+        </EditorWorkspaceProvider>
       </ProjectProvider>
       <Toaster />
     </div>

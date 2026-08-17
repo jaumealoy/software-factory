@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, File as FileIcon, Folder, FolderOpen, Loader2 } from "lucide-react";
-import { api, type DirectoryListing, type FileEntry, type FileContent } from "../../api";
+import { api, type DirectoryListing, type FileEntry } from "../../api";
 import { cn } from "../../lib/utils";
 import { useProject } from "../projectSwitcher";
+import { useEditorWorkspace } from "../editorWorkspace";
 import { DiffPane } from "./diffPane";
-import { EditorPane } from "./editorPane";
 
 function TreeRow({
   depth,
@@ -56,20 +56,19 @@ function TreeRow({
 
 export function FilePane() {
   const { ready, activeProjectId } = useProject();
+  const { openFile: openInWorkspace } = useEditorWorkspace();
   const [view, setView] = useState<"tree" | "diff">("tree");
   const [listing, setListing] = useState<DirectoryListing | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [children, setChildren] = useState<Record<string, FileEntry[]>>({});
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [preview, setPreview] = useState<FileContent | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     setListing(null);
     setChildren({});
     setSelected(null);
-    setPreview(null);
     setPreviewError(null);
     if (!activeProjectId) return;
     api
@@ -102,10 +101,10 @@ export function FilePane() {
   async function openFile(path: string) {
     if (!activeProjectId) return;
     setSelected(path);
-    setPreview(null);
     setPreviewError(null);
     try {
-      setPreview(await api.readFileContent(activeProjectId, path));
+      const content = await api.readFileContent(activeProjectId, path);
+      openInWorkspace(path, content.content);
     } catch (err) {
       setPreviewError(err instanceof Error ? err.message : "Failed to read file.");
     }
@@ -188,15 +187,6 @@ export function FilePane() {
             )}
             {previewError && <p className="p-3 text-sm text-destructive">{previewError}</p>}
           </div>
-          {preview && (
-            <div className="h-1/2 border-t border-border">
-              <EditorPane
-                projectId={activeProjectId}
-                filePath={preview.path}
-                initialValue={preview.content}
-              />
-            </div>
-          )}
           {loadingPath && (
             <div className="p-2 text-xs text-muted-foreground">
               <Loader2 className="mr-1 inline h-3 w-3 animate-spin" aria-hidden />
