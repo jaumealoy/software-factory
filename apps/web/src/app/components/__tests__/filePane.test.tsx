@@ -42,7 +42,21 @@ function stubApi() {
         },
       ]);
     }
-    if (method === "GET" && url === "/api/projects/p1/files") {
+    if (method === "GET" && url === "/api/projects/p1/folders") {
+      return json({
+        folders: [
+          {
+            id: "f1",
+            name: "Backend",
+            path: "/repos/backend",
+            url: "",
+            isPrimary: true,
+            exists: true,
+          },
+        ],
+      });
+    }
+    if (method === "GET" && url === "/api/projects/p1/files?folderId=f1") {
       return json({
         exists: true,
         path: ".",
@@ -52,7 +66,7 @@ function stubApi() {
         ],
       });
     }
-    if (method === "GET" && url === "/api/projects/p1/files?path=src") {
+    if (method === "GET" && url === "/api/projects/p1/files?path=src&folderId=f1") {
       return json({
         exists: true,
         path: "src",
@@ -62,11 +76,7 @@ function stubApi() {
         ],
       });
     }
-    if (
-      method === "GET" &&
-      (url === "/api/projects/p1/files/content?path=src%2Fapp.ts" ||
-        url === "/api/projects/p1/files/content?path=src%2Futil.ts")
-    ) {
+    if (method === "GET" && url.startsWith("/api/projects/p1/files/content?")) {
       const isUtil = url.includes("util.ts");
       return json({
         path: isUtil ? "src/util.ts" : "src/app.ts",
@@ -75,7 +85,11 @@ function stubApi() {
         binary: false,
       });
     }
-    if (method === "PUT" && url === "/api/projects/p1/files" && body?.path === "src/app.ts") {
+    if (
+      method === "PUT" &&
+      url === "/api/projects/p1/files?folderId=f1" &&
+      body?.path === "src/app.ts"
+    ) {
       return json({ path: "src/app.ts", content: "edited", size: 7, binary: false });
     }
     return { ok: false, status: 404, json: async () => ({ error: `no handler for ${url}` }) };
@@ -136,7 +150,6 @@ describe("editor workspace (#34)", () => {
       expect(editor.value).toContain("export const ok = true");
     });
   });
-
   it("marks a tab dirty on edit and saves to the working tree", async () => {
     const fetchMock = stubApi();
     const user = userEvent.setup();
@@ -161,9 +174,64 @@ describe("editor workspace (#34)", () => {
     await waitFor(() => {
       expect(
         fetchMock.mock.calls.some(
-          ([url, init]) => String(url) === "/api/projects/p1/files" && init?.method === "PUT",
+          ([url, init]) =>
+            String(url) === "/api/projects/p1/files?folderId=f1" && init?.method === "PUT",
         ),
       ).toBe(true);
     });
+  });
+
+  it("switching the project folder re-scopes the file tree", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const json = (value: unknown) => ({ ok: true, status: 200, json: async () => value });
+      if (url === "/api/projects") {
+        return json([
+          {
+            id: "p1",
+            name: "Alpha",
+            slug: "alpha",
+            description: null,
+            defaultModel: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      if (url === "/api/projects/p1/folders") {
+        return json({
+          folders: [
+            { id: "f1", name: "Backend", path: "/a", url: "", isPrimary: true, exists: true },
+            { id: "f2", name: "Web", path: "/b", url: "", isPrimary: false, exists: true },
+          ],
+        });
+      }
+      if (url === "/api/projects/p1/files?folderId=f1") {
+        return json({
+          exists: true,
+          path: ".",
+          entries: [{ name: "api.txt", path: "api.txt", type: "file", size: 1 }],
+        });
+      }
+      if (url === "/api/projects/p1/files?folderId=f2") {
+        return json({
+          exists: true,
+          path: ".",
+          entries: [{ name: "web.txt", path: "web.txt", type: "file", size: 1 }],
+        });
+      }
+      return { ok: false, status: 404, json: async () => ({ error: `no handler for ${url}` }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    expect(await screen.findByText("api.txt")).toBeInTheDocument();
+    const trigger = await screen.findByLabelText("Project folder");
+    await waitFor(() => expect(trigger).toBeEnabled());
+    await user.click(trigger);
+    await user.click(await screen.findByText("Web"));
+    expect(await screen.findByText("web.txt")).toBeInTheDocument();
+    expect(screen.queryByText("api.txt")).not.toBeInTheDocument();
   });
 });

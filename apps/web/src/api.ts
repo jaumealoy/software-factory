@@ -165,6 +165,15 @@ export interface FileEntry {
   size: number | null;
 }
 
+export interface WorkFolder {
+  id: string;
+  name: string;
+  path: string;
+  url: string;
+  isPrimary: boolean;
+  exists: boolean;
+}
+
 export interface DirectoryListing {
   exists: boolean;
   path: string;
@@ -321,15 +330,18 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  listFiles: (projectId: string, dirPath?: string) =>
+  listFiles: (projectId: string, dirPath?: string, folderId?: string) =>
     request<DirectoryListing>(
-      `/api/projects/${projectId}/files${dirPath ? `?path=${encodeURIComponent(dirPath)}` : ""}`,
+      `/api/projects/${projectId}/files${queryString({ path: dirPath, folderId })}`,
     ),
 
-  readFileContent: (projectId: string, path: string) =>
+  readFileContent: (projectId: string, path: string, folderId?: string) =>
     request<FileContent>(
-      `/api/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`,
+      `/api/projects/${projectId}/files/content${queryString({ path, folderId })}`,
     ),
+
+  listFolders: (projectId: string) =>
+    request<{ folders: WorkFolder[] }>(`/api/projects/${projectId}/folders`),
 
   listProviderCredentials: () =>
     request<{ providers: ProviderCredentialView[] }>("/api/settings/providers"),
@@ -379,11 +391,11 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
 
-  getWorkingDiff: (projectId: string) =>
-    request<{ diff: WorkingDiff }>(`/api/projects/${projectId}/diff`),
+  getWorkingDiff: (projectId: string, folderId?: string) =>
+    request<{ diff: WorkingDiff }>(`/api/projects/${projectId}/diff${queryString({ folderId })}`),
 
-  saveFile: (projectId: string, path: string, content: string) =>
-    request<FileContent>(`/api/projects/${projectId}/files`, {
+  saveFile: (projectId: string, path: string, content: string, folderId?: string) =>
+    request<FileContent>(`/api/projects/${projectId}/files${queryString({ folderId })}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ path, content }),
@@ -408,3 +420,13 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
 };
+
+function queryString(params: Record<string, string | undefined>): string {
+  const entries = Object.entries(params).filter(
+    (entry): entry is [string, string] => entry[1] !== undefined && entry[1] !== "",
+  );
+  if (entries.length === 0) return "";
+  return `?${entries
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&")}`;
+}

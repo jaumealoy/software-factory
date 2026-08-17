@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, type Project } from "../api";
 
 const STORAGE_KEY = "factory.activeProjectId";
@@ -8,6 +8,8 @@ interface ProjectContextValue {
   ready: boolean;
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
+  activeFolderId: string | null;
+  setActiveFolderId: (id: string | null) => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -15,6 +17,7 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActive] = useState<string | null>(null);
+  const [activeFolderId, setActiveFolder] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  function setActiveProjectId(id: string | null) {
+  const setActiveProjectId = useCallback((id: string | null) => {
     setActive(id);
     try {
       if (id) {
@@ -53,10 +56,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore storage failures
     }
-  }
+  }, []);
+
+  const setActiveFolderId = useCallback((id: string | null) => {
+    setActiveFolder(id);
+  }, []);
 
   return (
-    <ProjectContext.Provider value={{ projects, ready, activeProjectId, setActiveProjectId }}>
+    <ProjectContext.Provider
+      value={{
+        projects,
+        ready,
+        activeProjectId,
+        setActiveProjectId,
+        activeFolderId,
+        setActiveFolderId,
+      }}
+    >
       {children}
     </ProjectContext.Provider>
   );

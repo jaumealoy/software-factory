@@ -28,7 +28,7 @@ function baseName(filePath: string): string {
 }
 
 export function EditorWorkspaceProvider({ children }: { children: ReactNode }) {
-  const { activeProjectId } = useProject();
+  const { activeProjectId, activeFolderId } = useProject();
   const [tabs, setTabs] = useState<OpenTab[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
 
@@ -66,7 +66,7 @@ export function EditorWorkspaceProvider({ children }: { children: ReactNode }) {
         const tab = tabs.find((candidate) => candidate.path === activePath);
         if (!tab || !activeProjectId) return;
         try {
-          await api.saveFile(activeProjectId, tab.path, tab.content);
+          await api.saveFile(activeProjectId, tab.path, tab.content, activeFolderId ?? undefined);
           setTabs((prev) =>
             prev.map((candidate) =>
               candidate.path === tab.path ? { ...candidate, dirty: false } : candidate,
@@ -78,7 +78,7 @@ export function EditorWorkspaceProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [tabs, activePath, activeProjectId],
+    [tabs, activePath, activeProjectId, activeFolderId],
   );
 
   return (

@@ -61,7 +61,7 @@ function DiffRow({ file }: { file: DiffFile }) {
   );
 }
 
-export function DiffPane({ projectId }: { projectId: string }) {
+export function DiffPane({ projectId, folderId }: { projectId: string; folderId?: string }) {
   const [diff, setDiff] = useState<WorkingDiff | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,10 +69,10 @@ export function DiffPane({ projectId }: { projectId: string }) {
     setDiff(null);
     setError(null);
     api
-      .getWorkingDiff(projectId)
+      .getWorkingDiff(projectId, folderId)
       .then((res) => setDiff(res.diff))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load diff."));
-  }, [projectId]);
+  }, [projectId, folderId]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

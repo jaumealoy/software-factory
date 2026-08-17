@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, File as FileIcon, Folder, FolderOpen, Loader2 } from "lucide-react";
-import { api, type DirectoryListing, type FileEntry } from "../../api";
+import { api, type DirectoryListing, type FileEntry, type WorkFolder } from "../../api";
 import { cn } from "../../lib/utils";
 import { useProject } from "../projectSwitcher";
 import { useEditorWorkspace } from "../editorWorkspace";
 import { DiffPane } from "./diffPane";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 
 function TreeRow({
   depth,
@@ -55,7 +62,7 @@ function TreeRow({
 }
 
 export function FilePane() {
-  const { ready, activeProjectId } = useProject();
+  const { ready, activeProjectId, activeFolderId, setActiveFolderId } = useProject();
   const { openFile: openInWorkspace } = useEditorWorkspace();
   const [view, setView] = useState<"tree" | "diff">("tree");
   const [listing, setListing] = useState<DirectoryListing | null>(null);
@@ -64,28 +71,44 @@ export function FilePane() {
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [folders, setFolders] = useState<WorkFolder[]>([]);
+
+  useEffect(() => {
+    setFolders([]);
+    setActiveFolderId(null);
+    if (!activeProjectId) return;
+    api
+      .listFolders(activeProjectId)
+      .then((res) => {
+        setFolders(res.folders);
+        const defaultFolder =
+          res.folders.find((folder) => folder.isPrimary)?.id ?? res.folders[0]?.id ?? null;
+        setActiveFolderId(defaultFolder);
+      })
+      .catch(() => setPreviewError("Failed to load the project folders."));
+  }, [activeProjectId, setActiveFolderId]);
 
   useEffect(() => {
     setListing(null);
     setChildren({});
     setSelected(null);
     setPreviewError(null);
-    if (!activeProjectId) return;
+    if (!activeProjectId || !activeFolderId) return;
     api
-      .listFiles(activeProjectId)
+      .listFiles(activeProjectId, undefined, activeFolderId ?? undefined)
       .then(setListing)
       .catch(() => setPreviewError("Failed to load the project files."));
-  }, [activeProjectId]);
+  }, [activeProjectId, activeFolderId]);
 
   async function toggleDir(path: string) {
-    if (!activeProjectId) return;
+    if (!activeProjectId || !activeFolderId) return;
     const current = new Set(expanded);
     const willExpand = !current.has(path);
     if (willExpand) {
       current.add(path);
       setLoadingPath(path);
       try {
-        const dir = await api.listFiles(activeProjectId, path);
+        const dir = await api.listFiles(activeProjectId, path, activeFolderId);
         setChildren((prev) => ({ ...prev, [path]: dir.entries }));
       } catch {
         setPreviewError("Failed to load this folder.");
@@ -99,11 +122,11 @@ export function FilePane() {
   }
 
   async function openFile(path: string) {
-    if (!activeProjectId) return;
+    if (!activeProjectId || !activeFolderId) return;
     setSelected(path);
     setPreviewError(null);
     try {
-      const content = await api.readFileContent(activeProjectId, path);
+      const content = await api.readFileContent(activeProjectId, path, activeFolderId);
       openInWorkspace(path, content.content);
     } catch (err) {
       setPreviewError(err instanceof Error ? err.message : "Failed to read file.");
@@ -150,6 +173,28 @@ export function FilePane() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      {folders.length > 1 && (
+        <div className="border-b border-border p-1.5">
+          <Select
+            value={activeFolderId ?? ""}
+            onValueChange={(value) => {
+              if (value) setActiveFolderId(value);
+            }}
+          >
+            <SelectTrigger aria-label="Project folder" className="w-full">
+              <SelectValue placeholder="Folder" />
+            </SelectTrigger>
+            <SelectContent>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  {folder.name}
+                  {!folder.exists && " (missing)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex items-center border-b border-border px-2 py-1">
         <span className="flex-1 px-1 text-sm font-medium">Project files</span>
         <button
@@ -174,7 +219,11 @@ export function FilePane() {
         </button>
       </div>
       {view === "diff" && activeProjectId ? (
-        <DiffPane projectId={activeProjectId} />
+        <DiffPane projectId={activeProjectId} folderId={activeFolderId ?? undefined} />
+      ) : folders.length === 0 ? (
+        <p className="p-3 text-sm text-muted-foreground">
+          No work folders defined for this project.
+        </p>
       ) : (
         <>
           <div className="flex-1 overflow-auto p-1">

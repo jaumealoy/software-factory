@@ -159,4 +159,59 @@ describe("project file browser (#25)", () => {
     });
     expect(put.statusCode).toBe(422);
   });
+
+  it("scopes file listing to a selected folder via folderId", async () => {
+    const db = createDb(":memory:");
+    runMigrations(db.db, migrationsDir);
+    handles.push(db);
+    const store = new FactoryStore(db.db);
+    const project = await store.createProject({
+      name: "Acme",
+      slug: `acme-${Math.random().toString(36).slice(2)}`,
+    });
+    const primaryDir = makeRepo();
+    const secondDir = makeRepo();
+    writeFileSync(path.join(secondDir, "marker.txt"), "second folder\n");
+    await store.addRepository({
+      projectId: project.id,
+      name: "primary",
+      url: "x",
+      localPath: primaryDir,
+      isPrimary: true,
+    });
+    const second = await store.addRepository({
+      projectId: project.id,
+      name: "second",
+      url: "x",
+      localPath: secondDir,
+      isPrimary: false,
+    });
+    const app = await buildApp({
+      db,
+      config,
+      scheduleMigrations: false,
+      serveWeb: false,
+    });
+    apps.push(app);
+
+    const defaultList = await app.inject({
+      method: "GET",
+      url: `/api/projects/${project.id}/files`,
+    });
+    const defaultNames = (defaultList.json().entries as Array<{ name: string }>).map((e) => e.name);
+    expect(defaultNames).not.toContain("marker.txt");
+
+    const scoped = await app.inject({
+      method: "GET",
+      url: `/api/projects/${project.id}/files?folderId=${second.id}`,
+    });
+    const scopedNames = (scoped.json().entries as Array<{ name: string }>).map((e) => e.name);
+    expect(scopedNames).toContain("marker.txt");
+
+    const missing = await app.inject({
+      method: "GET",
+      url: `/api/projects/${project.id}/files?folderId=nope`,
+    });
+    expect(missing.statusCode).toBe(404);
+  });
 });
