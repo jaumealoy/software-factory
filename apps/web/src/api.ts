@@ -212,6 +212,31 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export type DiffStatus = "modified" | "new" | "deleted";
+
+export interface DiffLine {
+  type: "add" | "del" | "ctx";
+  text: string;
+}
+
+export interface DiffHunk {
+  header: string;
+  lines: DiffLine[];
+}
+
+export interface DiffFile {
+  path: string;
+  status: DiffStatus;
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+}
+
+export interface WorkingDiff {
+  files: DiffFile[];
+  empty: boolean;
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   if (!response.ok) {
@@ -336,4 +361,7 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text }),
     }),
+
+  getWorkingDiff: (projectId: string) =>
+    request<{ diff: WorkingDiff }>(`/api/projects/${projectId}/diff`),
 };

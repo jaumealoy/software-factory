@@ -1,28 +1,13 @@
 import type { FastifyPluginAsync } from "fastify";
-import { eq } from "drizzle-orm";
 import type { Db } from "../db/index.js";
-import { repositories } from "../db/index.js";
 import { NotFoundError, ValidationError } from "../domain/errors.js";
 import { listDirectory, readFileContent } from "../domain/files.js";
+import { defaultRootResolver } from "./repoRoot.js";
 
 export interface FilesRoutesOptions {
   db: Db;
   /** Resolves the repo root for a project (defaults to the primary repository localPath). */
   resolveRoot?: (projectId: string) => string | null;
-}
-
-function defaultRootResolver(db: Db) {
-  return (projectId: string): string | null => {
-    const repo =
-      db
-        .select()
-        .from(repositories)
-        .where(eq(repositories.projectId, projectId))
-        .all()
-        .find((candidate) => candidate.isPrimary) ??
-      db.select().from(repositories).where(eq(repositories.projectId, projectId)).all()[0];
-    return repo?.localPath || null;
-  };
 }
 
 export const filesRoutes: FastifyPluginAsync<FilesRoutesOptions> = async (fastify, options) => {

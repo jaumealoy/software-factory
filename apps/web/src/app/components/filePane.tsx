@@ -3,6 +3,7 @@ import { ChevronRight, File as FileIcon, Folder, FolderOpen, Loader2 } from "luc
 import { api, type DirectoryListing, type FileEntry, type FileContent } from "../../api";
 import { cn } from "../../lib/utils";
 import { useProject } from "../projectSwitcher";
+import { DiffPane } from "./diffPane";
 
 function TreeRow({
   depth,
@@ -54,6 +55,7 @@ function TreeRow({
 
 export function FilePane() {
   const { ready, activeProjectId } = useProject();
+  const [view, setView] = useState<"tree" | "diff">("tree");
   const [listing, setListing] = useState<DirectoryListing | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [children, setChildren] = useState<Record<string, FileEntry[]>>({});
@@ -148,28 +150,58 @@ export function FilePane() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-border px-3 py-2 text-sm font-medium">Project files</div>
-      <div className="flex-1 overflow-auto p-1">
-        {!listing?.exists && !previewError ? (
-          <p className="p-3 text-sm text-muted-foreground">
-            {listing?.message ?? "No files to show."}
-          </p>
-        ) : (
-          renderEntries(rootEntries, 0)
-        )}
-        {previewError && <p className="p-3 text-sm text-destructive">{previewError}</p>}
+      <div className="flex items-center border-b border-border px-2 py-1">
+        <span className="flex-1 px-1 text-sm font-medium">Project files</span>
+        <button
+          type="button"
+          onClick={() => setView("tree")}
+          className={cn(
+            "rounded px-2 py-0.5 text-xs hover:bg-accent",
+            view === "tree" && "bg-accent",
+          )}
+        >
+          Files
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("diff")}
+          className={cn(
+            "rounded px-2 py-0.5 text-xs hover:bg-accent",
+            view === "diff" && "bg-accent",
+          )}
+        >
+          Changes
+        </button>
       </div>
-      {preview && (
-        <div className="border-t border-border">
-          <div className="truncate px-3 py-1.5 text-xs text-muted-foreground">{preview.path}</div>
-          <pre className="max-h-40 overflow-auto p-3 text-xs">{preview.content}</pre>
-        </div>
-      )}
-      {loadingPath && (
-        <div className="p-2 text-xs text-muted-foreground">
-          <Loader2 className="mr-1 inline h-3 w-3 animate-spin" aria-hidden />
-          Loading…
-        </div>
+      {view === "diff" && activeProjectId ? (
+        <DiffPane projectId={activeProjectId} />
+      ) : (
+        <>
+          <div className="flex-1 overflow-auto p-1">
+            {!listing?.exists && !previewError ? (
+              <p className="p-3 text-sm text-muted-foreground">
+                {listing?.message ?? "No files to show."}
+              </p>
+            ) : (
+              renderEntries(rootEntries, 0)
+            )}
+            {previewError && <p className="p-3 text-sm text-destructive">{previewError}</p>}
+          </div>
+          {preview && (
+            <div className="border-t border-border">
+              <div className="truncate px-3 py-1.5 text-xs text-muted-foreground">
+                {preview.path}
+              </div>
+              <pre className="max-h-40 overflow-auto p-3 text-xs">{preview.content}</pre>
+            </div>
+          )}
+          {loadingPath && (
+            <div className="p-2 text-xs text-muted-foreground">
+              <Loader2 className="mr-1 inline h-3 w-3 animate-spin" aria-hidden />
+              Loading…
+            </div>
+          )}
+        </>
       )}
     </div>
   );

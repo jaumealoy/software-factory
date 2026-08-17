@@ -14,6 +14,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { favoritesRoutes } from "./routes/favorites.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { filesRoutes } from "./routes/files.js";
+import { diffRoutes } from "./routes/diff.js";
 import { SessionManager } from "./session/manager.js";
 import type { WorkflowProvider } from "./workflow/types.js";
 
@@ -61,6 +62,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   await app.register(favoritesRoutes, { db: db.db });
   await app.register(filesRoutes, { db: db.db });
+  await app.register(diffRoutes, { db: db.db });
   await app.register(sessionsRoutes, {
     db: db.db,
     sessions:
