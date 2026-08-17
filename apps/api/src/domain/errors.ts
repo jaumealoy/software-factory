@@ -36,3 +36,10 @@ export class ValidationError extends DomainError {
     this.name = "ValidationError";
   }
 }
+
+export class ConfigurationError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConfigurationError";
+  }
+}

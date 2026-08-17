@@ -38,6 +38,19 @@ import {
 } from "./projects.js";
 import type { ChangeStatus, TaskStatus } from "./statuses.js";
 import {
+  addFavoriteModel,
+  isFavoriteModel,
+  listFavoriteModels,
+  removeFavoriteModel,
+} from "./favorites.js";
+import {
+  getProviderCredential,
+  listProviderCredentials,
+  removeProviderCredential,
+  setProviderCredential,
+  type ProviderCredentialView,
+} from "./settings.js";
+import {
   addTaskDependency,
   createTask,
   getTask,
@@ -189,6 +202,42 @@ export class FactoryStore {
       pendingDecisions: listPendingDecisions(this.db, { changeId }),
       artifacts: listArtifacts(this.db, { changeId }),
     };
+  }
+
+  async listFavoriteModels(): Promise<string[]> {
+    return listFavoriteModels(this.db);
+  }
+
+  async addFavoriteModel(modelId: string): Promise<string> {
+    return addFavoriteModel(this.db, modelId);
+  }
+
+  async removeFavoriteModel(modelId: string): Promise<void> {
+    return removeFavoriteModel(this.db, modelId);
+  }
+
+  async isFavoriteModel(modelId: string): Promise<boolean> {
+    return isFavoriteModel(this.db, modelId);
+  }
+
+  async setProviderCredential(
+    provider: string,
+    secret: string,
+    encryptionKey: string,
+  ): Promise<ProviderCredentialView> {
+    return setProviderCredential(this.db, provider, secret, encryptionKey);
+  }
+
+  async removeProviderCredential(provider: string): Promise<void> {
+    return removeProviderCredential(this.db, provider);
+  }
+
+  async getProviderCredential(provider: string, encryptionKey: string): Promise<string | null> {
+    return getProviderCredential(this.db, provider, encryptionKey);
+  }
+
+  async listProviderCredentials(encryptionKey: string): Promise<ProviderCredentialView[]> {
+    return listProviderCredentials(this.db, encryptionKey);
   }
 }
 

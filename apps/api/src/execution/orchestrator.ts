@@ -32,6 +32,8 @@ export interface RunTaskInput extends ExecutionOptions {
   runner?: TaskRunner;
   worktrees?: WorktreeManager;
   github?: { repoFullName: string; changeIssueNumber?: number; executor?: IssueExecutor };
+  /** Optional sink for runner events as they occur (e.g. a streaming session). */
+  onEvent?: (event: TaskRunResult["events"][number]) => void;
 }
 
 export type RunOutcome = "DONE" | "REWORK" | "ESCALATED" | "FAILED";
@@ -110,6 +112,7 @@ export async function runTask(db: Db, input: RunTaskInput): Promise<RunTaskResul
       eventType: `task.run_${event.type}`,
       payload: { stage: event.stage, message: event.message },
     });
+    input.onEvent?.(event);
   };
 
   let provisioned: Awaited<ReturnType<WorktreeManager["create"]>>;

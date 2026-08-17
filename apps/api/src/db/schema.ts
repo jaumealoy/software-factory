@@ -193,6 +193,48 @@ export const events = sqliteTable(
   (table) => [index("events_entity_idx").on(table.entityType, table.entityId)],
 );
 
+export const modelFavorites = sqliteTable("model_favorites", {
+  modelId: text("model_id").primaryKey(),
+  createdAt,
+});
+
+export const executionSessions = sqliteTable(
+  "execution_sessions",
+  {
+    id: text("id").primaryKey(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("RUNNING"),
+    outcome: text("outcome"),
+    error: text("error"),
+    startedAt: integer("started_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("execution_sessions_task_id_idx").on(table.taskId)],
+);
+
+export const sessionEvents = sqliteTable(
+  "session_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => executionSessions.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    stage: text("stage"),
+    message: text("message"),
+    detail: text("detail"),
+    dataJson: text("data_json"),
+    createdAt,
+  },
+  (table) => [index("session_events_session_id_idx").on(table.sessionId)],
+);
+
 export type FactoryProject = typeof factoryProjects.$inferSelect;
 export type NewFactoryProject = typeof factoryProjects.$inferInsert;
 
@@ -221,3 +263,12 @@ export type NewArtifact = typeof artifacts.$inferInsert;
 
 export type ExecutionEvent = typeof events.$inferSelect;
 export type NewExecutionEvent = typeof events.$inferInsert;
+
+export type ModelFavorite = typeof modelFavorites.$inferSelect;
+export type NewModelFavorite = typeof modelFavorites.$inferInsert;
+
+export type ExecutionSession = typeof executionSessions.$inferSelect;
+export type NewExecutionSession = typeof executionSessions.$inferInsert;
+
+export type SessionEvent = typeof sessionEvents.$inferSelect;
+export type NewSessionEvent = typeof sessionEvents.$inferInsert;
