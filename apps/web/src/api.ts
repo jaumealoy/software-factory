@@ -58,6 +58,7 @@ export interface Artifact {
   path: string | null;
   uri: string | null;
   summary: string | null;
+  validationResult: string | null;
   createdAt: string;
 }
 

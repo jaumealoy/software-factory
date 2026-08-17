@@ -10,14 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import {
-  ArtifactRow,
-  EventRow,
-  messageOf,
-  PendingDecision,
-  statusBadgeVariant,
-  TaskTable,
-} from "../domainViews";
+import { messageOf, PendingDecision, statusBadgeVariant } from "../domainViews";
+import { TaskGraphView } from "../components/taskGraph";
 
 export function ChangeDetailPage() {
   const { changeId } = useParams<{ changeId: string }>();
@@ -101,10 +95,28 @@ export function ChangeDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tasks</CardTitle>
+          <CardTitle>Task graph</CardTitle>
+          <CardDescription>Decomposed tasks and their dependencies.</CardDescription>
         </CardHeader>
         <CardContent>
-          <TaskTable tasks={detail.tasks} />
+          <TaskGraphView
+            tasks={detail.tasks}
+            edges={detail.taskGraph.edges}
+            isAcyclic={detail.taskGraph.isAcyclic}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Runs</CardTitle>
+          <CardDescription>Task execution runs will appear here.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            The Kilo Code agent integration will surface live run status and verification results on
+            this panel.
+          </p>
         </CardContent>
       </Card>
 
@@ -116,9 +128,42 @@ export function ChangeDetailPage() {
           {detail.artifacts.length === 0 ? (
             <p className="text-sm text-muted-foreground">None.</p>
           ) : (
-            <ul>
+            <ul className="divide-y">
               {detail.artifacts.map((artifact) => (
-                <ArtifactRow key={artifact.id} artifact={artifact} />
+                <li key={artifact.id} className="py-2">
+                  <details className="group">
+                    <summary className="flex cursor-pointer items-baseline gap-2">
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                        {artifact.kind}
+                      </code>
+                      <span>{artifact.summary}</span>
+                      {artifact.uri && (
+                        <a
+                          className="text-blue-600 underline"
+                          href={artifact.uri}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          link
+                        </a>
+                      )}
+                      <span className="text-xs text-muted-foreground group-open:hidden">
+                        expand
+                      </span>
+                    </summary>
+                    <pre className="mt-2 overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                      {JSON.stringify(
+                        {
+                          path: artifact.path,
+                          uri: artifact.uri,
+                          validation: artifact.validationResult,
+                        },
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </details>
+                </li>
               ))}
             </ul>
           )}
@@ -134,12 +179,23 @@ export function ChangeDetailPage() {
           <CardContent>
             <ul className="space-y-1.5">
               {detail.events.slice(0, 10).map((event) => (
-                <EventRow key={event.id} event={event} />
+                <EventRowInline key={event.id} event={event} />
               ))}
             </ul>
           </CardContent>
         </Card>
       )}
     </div>
+  );
+}
+
+function EventRowInline({ event }: { event: { createdAt: string; eventType: string } }) {
+  return (
+    <li className="flex gap-2 text-sm">
+      <span className="tabular-nums text-muted-foreground">
+        {new Date(event.createdAt).toLocaleTimeString()}
+      </span>
+      <span>{event.eventType}</span>
+    </li>
   );
 }

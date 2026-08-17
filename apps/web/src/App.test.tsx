@@ -108,8 +108,10 @@ describe("dashboard routing", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Run factory" }));
 
-    expect(await screen.findByText("Define the auth contract.")).toBeInTheDocument();
+    expect((await screen.findAllByText("Define the auth contract.")).length).toBeGreaterThan(0);
     expect(screen.getByText("Add Google OAuth")).toBeInTheDocument();
+    expect(screen.getByText("Task graph")).toBeInTheDocument();
+    expect(screen.getByText(/task execution runs will appear here/i)).toBeInTheDocument();
   });
 
   it("renders a pending decision on a deep-linked change detail and resolves it", async () => {
