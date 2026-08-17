@@ -19,6 +19,7 @@ export interface TasksRoutesOptions {
   runner?: TaskRunner;
   worktrees?: WorktreeManager;
   testCommand?: string;
+  encryptionKey?: string;
 }
 
 export const tasksRoutes: FastifyPluginAsync<TasksRoutesOptions> = async (fastify, options) => {
@@ -74,6 +75,7 @@ export const tasksRoutes: FastifyPluginAsync<TasksRoutesOptions> = async (fastif
             runner: options.runner,
             worktrees: options.worktrees,
             testCommand: options.testCommand,
+            encryptionKey: options.encryptionKey,
           });
         } else {
           result = await runTaskWithResolvedModel(options.db, {
@@ -82,6 +84,7 @@ export const tasksRoutes: FastifyPluginAsync<TasksRoutesOptions> = async (fastif
             runner: options.runner,
             worktrees: options.worktrees,
             testCommand: options.testCommand,
+            encryptionKey: options.encryptionKey,
           });
         }
         return reply.code(result.outcome === "ESCALATED" ? 202 : 200).send({ result });

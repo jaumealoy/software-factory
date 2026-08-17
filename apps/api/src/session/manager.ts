@@ -21,6 +21,8 @@ export interface SessionManagerOptions {
   testCommand?: string;
   runner?: TaskRunner;
   worktrees?: WorktreeManager;
+  /** Enables injecting configured provider credentials into the Kilo runner. */
+  encryptionKey?: string;
 }
 
 export interface StartSessionInput {
@@ -181,6 +183,7 @@ export class SessionManager {
       runner: this.options.runner,
       worktrees: this.options.worktrees,
       testCommand: this.options.testCommand,
+      encryptionKey: this.options.encryptionKey,
       onEvent: (event) => {
         const stored = appendSessionEvent(this.db, sessionId, {
           type: event.type,

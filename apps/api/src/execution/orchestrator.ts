@@ -11,6 +11,7 @@ import { listArtifacts } from "../domain/artifacts.js";
 import { publishTaskIssue } from "../github/publisher.js";
 import type { IssueExecutor } from "../github/client.js";
 import { KiloRunner } from "../kilo/runner.js";
+import { buildKiloEnv } from "../kilo/credentials.js";
 import {
   persistRun,
   type TaskRunContext,
@@ -22,6 +23,8 @@ import { WorktreeError, WorktreeManager } from "../worktree/index.js";
 export interface ExecutionOptions {
   maxVerificationAttempts?: number;
   testCommand?: string;
+  /** Enables injecting configured provider credentials into the Kilo runner. */
+  encryptionKey?: string;
 }
 
 export interface RunTaskInput extends ExecutionOptions {
@@ -85,7 +88,12 @@ export async function runTask(db: Db, input: RunTaskInput): Promise<RunTaskResul
   }
 
   const testCommand = input.testCommand ?? "pnpm test";
-  const runner = input.runner ?? new KiloRunner({ testCommand });
+  const runner =
+    input.runner ??
+    new KiloRunner({
+      testCommand,
+      env: buildKiloEnv(db, input.model, input.encryptionKey) ?? undefined,
+    });
   const worktrees = input.worktrees ?? new WorktreeManager();
   const maxAttempts = input.maxVerificationAttempts ?? 2;
   const changeName = input.changeName ?? (kebabCase(change.title) || "change");

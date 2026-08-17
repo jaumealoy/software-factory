@@ -11,6 +11,8 @@ export interface KiloRunOptions {
   /** Directory (worktree) the agent runs in. */
   dir: string;
   agent?: string;
+  /** Extra env vars merged into the process env for the `kilo` invocation. */
+  env?: Record<string, string>;
   timeoutMs?: number;
 }
 
@@ -34,11 +36,16 @@ export class KiloNotInstalledError extends DomainError {
 
 type KiloRunResult = { stdout: string; stderr: string; exitCode: number; timedOut: boolean };
 
-async function defaultKiloRunner(args: string[], timeoutMs: number): Promise<KiloRunResult> {
+async function defaultKiloRunner(
+  args: string[],
+  timeoutMs: number,
+  env?: Record<string, string>,
+): Promise<KiloRunResult> {
   try {
     const result = await execFileAsync("kilo", args, {
       timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024,
+      ...(env ? { env: { ...process.env, ...env } } : {}),
     });
     return { stdout: result.stdout, stderr: result.stderr, exitCode: 0, timedOut: false };
   } catch (error) {
@@ -58,12 +65,15 @@ async function defaultKiloRunner(args: string[], timeoutMs: number): Promise<Kil
   }
 }
 
+type KiloRunFn = (
+  args: string[],
+  timeoutMs: number,
+  env?: Record<string, string>,
+) => Promise<KiloRunResult>;
+
 export class KiloCliExecutor implements KiloExecutor {
   constructor(
-    private readonly userRun: (
-      args: string[],
-      timeoutMs: number,
-    ) => Promise<KiloRunResult> = defaultKiloRunner,
+    private readonly userRun: KiloRunFn = defaultKiloRunner,
     private readonly defaultTimeoutMs = 10 * 60_000,
   ) {}
 
@@ -81,7 +91,11 @@ export class KiloCliExecutor implements KiloExecutor {
     if (options.agent) {
       args.push("--agent", options.agent);
     }
-    const result = await this.userRun(args, options.timeoutMs ?? this.defaultTimeoutMs);
+    const result = await this.userRun(
+      args,
+      options.timeoutMs ?? this.defaultTimeoutMs,
+      options.env,
+    );
     return {
       stdout: result.stdout,
       stderr: result.stderr,

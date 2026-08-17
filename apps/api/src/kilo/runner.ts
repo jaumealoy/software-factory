@@ -12,6 +12,8 @@ export interface KiloRunnerOptions {
   executor?: KiloExecutor;
   timeoutMs?: number;
   testCommand?: string;
+  /** Extra env vars (e.g. provider API keys) merged in for each `kilo` invocation. */
+  env?: Record<string, string>;
 }
 
 const MAX_OUTPUT_KEPT = 8_000;
@@ -21,11 +23,13 @@ export class KiloRunner implements TaskRunner {
   private readonly executor: KiloExecutor;
   private readonly timeoutMs: number;
   private readonly testCommand: string;
+  private readonly env?: Record<string, string>;
 
   constructor(options: KiloRunnerOptions = {}) {
     this.executor = options.executor ?? new KiloCliExecutor();
     this.timeoutMs = options.timeoutMs ?? 10 * 60_000;
     this.testCommand = options.testCommand ?? "pnpm test";
+    this.env = options.env ?? undefined;
   }
 
   async run(
@@ -57,6 +61,7 @@ export class KiloRunner implements TaskRunner {
         model,
         dir: context.repositoryPath,
         timeoutMs: this.timeoutMs,
+        ...(this.env ? { env: this.env } : {}),
       });
     } catch (error) {
       if (error instanceof KiloNotInstalledError) {

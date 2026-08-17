@@ -50,6 +50,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     runner: options.taskRunner,
     worktrees: options.worktrees,
     testCommand: options.testCommand,
+    encryptionKey: options.encryptionKey ?? config.FACTORY_ENCRYPTION_KEY,
   });
   await app.register(changesRoutes, { db: db.db, workflowProvider: options.workflowProvider });
   await app.register(decisionsRoutes, { db: db.db, workflowProvider: options.workflowProvider });
@@ -66,6 +67,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
         runner: options.taskRunner,
         worktrees: options.worktrees,
         testCommand: options.testCommand,
+        encryptionKey: options.encryptionKey ?? config.FACTORY_ENCRYPTION_KEY,
       }),
   });
 
