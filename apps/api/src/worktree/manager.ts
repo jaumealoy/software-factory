@@ -135,7 +135,8 @@ export class WorktreeManager {
   async commitAll(provision: WorktreeProvision, message: string): Promise<void> {
     await this.gitRun(["add", "-A"], provision.worktreePath);
     const commit = await this.gitRun(["commit", "-m", message], provision.worktreePath);
-    if (commit.exitCode !== 0 && !commit.stderr.includes("nothing to commit")) {
+    const combined = `${commit.stdout} ${commit.stderr}`.toLowerCase();
+    if (commit.exitCode !== 0 && !combined.includes("nothing to commit")) {
       throw new WorktreeError(`Could not commit in worktree: ${commit.stderr.trim()}`);
     }
   }

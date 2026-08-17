@@ -36,6 +36,8 @@ export interface TaskRunContext {
   impactManifestPath?: string;
   /** Command the runner must run to verify the task (e.g. `pnpm test`). */
   testCommand?: string;
+  /** Which TDD phase this run represents; used to scope the agent prompt. */
+  phase?: TaskRunStage;
 }
 
 export interface TaskRunResult {

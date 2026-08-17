@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import type { Db } from "../db/index.js";
 import { recordArtifact } from "../domain/artifacts.js";
 import { recordEvent } from "../domain/events.js";
@@ -60,6 +62,11 @@ export class DeterministicRunner implements TaskRunner {
       timestamp: now(),
     });
     const testsCreated = [`tests/${context.taskId.slice(0, 8)}.test.ts`];
+    mkdirSync(path.join(context.repositoryPath, "tests"), { recursive: true });
+    writeFileSync(
+      path.join(context.repositoryPath, testsCreated[0] as string),
+      "// fixture test\n",
+    );
 
     emit({
       type: "implementation_done",
@@ -68,6 +75,11 @@ export class DeterministicRunner implements TaskRunner {
       timestamp: now(),
     });
     const changedFiles = [`src/${context.taskId.slice(0, 8)}.ts`];
+    mkdirSync(path.join(context.repositoryPath, "src"), { recursive: true });
+    writeFileSync(
+      path.join(context.repositoryPath, changedFiles[0] as string),
+      "export const implemented = true;\n",
+    );
 
     emit({
       type: "verification_started",
