@@ -19,6 +19,9 @@ export interface BuildAppOptions {
   serveWeb?: boolean;
   workflowProvider?: WorkflowProvider;
   modelsRunner?: () => Promise<string>;
+  taskRunner?: import("./runner/index.js").TaskRunner;
+  worktrees?: import("./worktree/index.js").WorktreeManager;
+  testCommand?: string;
 }
 
 export async function buildApp(options: BuildAppOptions = {}) {
@@ -35,7 +38,13 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(healthRoutes, { db: db.db });
   await app.register(projectRoutes, { db: db.db, modelsRunner: options.modelsRunner });
   await app.register(modelsRoutes, { modelsRunner: options.modelsRunner });
-  await app.register(tasksRoutes, { db: db.db, modelsRunner: options.modelsRunner });
+  await app.register(tasksRoutes, {
+    db: db.db,
+    modelsRunner: options.modelsRunner,
+    runner: options.taskRunner,
+    worktrees: options.worktrees,
+    testCommand: options.testCommand,
+  });
   await app.register(changesRoutes, { db: db.db, workflowProvider: options.workflowProvider });
   await app.register(decisionsRoutes, { db: db.db, workflowProvider: options.workflowProvider });
 

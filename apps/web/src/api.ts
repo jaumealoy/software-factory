@@ -46,6 +46,28 @@ export interface TaskModelResolution {
   source: "task" | "project" | "default";
 }
 
+export type TaskRunStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED";
+
+export interface TaskRunEvent {
+  type: string;
+  stage: string | null;
+  message?: string;
+}
+
+export interface TaskRunResult {
+  status: TaskRunStatus;
+  message: string | null;
+  verificationPassed: boolean | null;
+  verificationOutput: string | null;
+  events: TaskRunEvent[];
+}
+
+export interface TaskRunRecord {
+  id: string;
+  createdAt: string;
+  payload: TaskRunResult | null;
+}
+
 export interface TaskEdge {
   taskId: string;
   dependsOnTaskId: string;
@@ -169,6 +191,15 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ model }),
     }),
+
+  runTask: (taskId: string, repositoryPath: string) =>
+    request<{ result: TaskRunResult }>(`/api/tasks/${taskId}/run`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ repositoryPath }),
+    }),
+
+  getTaskRuns: (taskId: string) => request<{ runs: TaskRunRecord[] }>(`/api/tasks/${taskId}/runs`),
 
   listChanges: () => request<ChangeSummary[]>("/api/changes"),
 

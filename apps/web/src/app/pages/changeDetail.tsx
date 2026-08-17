@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/card";
 import { messageOf, PendingDecision, statusBadgeVariant } from "../domainViews";
 import { TaskGraphView } from "../components/taskGraph";
+import { TaskExecutionPanel } from "../components/taskExecution";
 
 export function ChangeDetailPage() {
   const { changeId } = useParams<{ changeId: string }>();
@@ -106,6 +107,12 @@ export function ChangeDetailPage() {
           />
         </CardContent>
       </Card>
+
+      <TaskExecutionPanel
+        tasks={detail.tasks}
+        repositoryPath={repositoryPath}
+        onTaskUpdated={() => void load()}
+      />
 
       <Card>
         <CardHeader>
