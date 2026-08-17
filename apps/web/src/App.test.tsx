@@ -160,7 +160,7 @@ describe("dashboard routing", () => {
     const { unmount } = renderRouter(["/"]);
 
     fireEvent.click(await screen.findByRole("link", { name: "Changes" }));
-    expect(await screen.findByRole("heading", { name: "Changes" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("Changes list")).toBeInTheDocument();
 
     unmount();
     renderRouter(["/unknown/route"]);

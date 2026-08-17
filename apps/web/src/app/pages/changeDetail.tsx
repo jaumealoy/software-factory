@@ -1,7 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, type ChangeDetail } from "../../api";
-import { ArtifactRow, EventRow, messageOf, PendingDecision, TaskTable } from "../domainViews";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import {
+  ArtifactRow,
+  EventRow,
+  messageOf,
+  PendingDecision,
+  statusBadgeVariant,
+  TaskTable,
+} from "../domainViews";
 
 export function ChangeDetailPage() {
   const { changeId } = useParams<{ changeId: string }>();
@@ -30,40 +46,30 @@ export function ChangeDetailPage() {
   if (error) {
     return (
       <section>
-        <p role="alert">{error}</p>
-        <button type="button" onClick={() => navigate("/changes")}>
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/changes")}>
           Back
-        </button>
+        </Button>
       </section>
     );
   }
 
   if (!detail) {
-    return <p>Loading change…</p>;
+    return <p className="text-sm text-muted-foreground">Loading change…</p>;
   }
 
   return (
-    <section aria-label="Change details">
-      <button type="button" onClick={() => navigate("/changes")}>
-        ← Back
-      </button>
-      <h2>{detail.change.title}</h2>
-      <p>
-        Status:{" "}
-        <span
-          style={{
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            padding: "0.1rem 0.5rem",
-            borderRadius: "0.5rem",
-            backgroundColor: "#ddf4ff",
-            color: "#0550ae",
-          }}
-        >
-          {detail.change.status}
-        </span>
-      </p>
-      <p>{detail.change.requestText}</p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="sm" onClick={() => navigate("/changes")}>
+          ← Back
+        </Button>
+        <h2 className="text-xl font-semibold">{detail.change.title}</h2>
+        <Badge variant={statusBadgeVariant(detail.change.status)}>{detail.change.status}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">{detail.change.requestText}</p>
 
       {detail.pendingDecisions.map((decision) => (
         <PendingDecision
@@ -74,41 +80,66 @@ export function ChangeDetailPage() {
         />
       ))}
 
-      <h3>Capabilities</h3>
-      {detail.capabilities.length === 0 ? (
-        <p>None.</p>
-      ) : (
-        <ul>
-          {detail.capabilities.map((capability) => (
-            <li key={capability.id}>{capability.name}</li>
-          ))}
-        </ul>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Capabilities</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {detail.capabilities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">None.</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {detail.capabilities.map((capability) => (
+                <li key={capability.id}>
+                  <Badge variant="secondary">{capability.name}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-      <h3>Tasks</h3>
-      <TaskTable tasks={detail.tasks} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TaskTable tasks={detail.tasks} />
+        </CardContent>
+      </Card>
 
-      <h3>Artifacts</h3>
-      {detail.artifacts.length === 0 ? (
-        <p>None.</p>
-      ) : (
-        <ul>
-          {detail.artifacts.map((artifact) => (
-            <ArtifactRow key={artifact.id} artifact={artifact} />
-          ))}
-        </ul>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Artifacts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {detail.artifacts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">None.</p>
+          ) : (
+            <ul>
+              {detail.artifacts.map((artifact) => (
+                <ArtifactRow key={artifact.id} artifact={artifact} />
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       {detail.events.length > 0 && (
-        <>
-          <h3>Activity</h3>
-          <ul style={{ fontSize: "0.9rem", color: "#444" }}>
-            {detail.events.slice(0, 10).map((event) => (
-              <EventRow key={event.id} event={event} />
-            ))}
-          </ul>
-        </>
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity</CardTitle>
+            <CardDescription>Recent execution events for this change.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5">
+              {detail.events.slice(0, 10).map((event) => (
+                <EventRow key={event.id} event={event} />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
-    </section>
+    </div>
   );
 }

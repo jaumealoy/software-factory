@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { Toaster } from "./toast";
 
 const linkBase: React.CSSProperties = {
   color: "#e6edf3",
@@ -51,6 +52,7 @@ export function AppShell() {
       >
         <Outlet />
       </main>
+      <Toaster />
     </div>
   );
 }
