@@ -28,7 +28,7 @@ pnpm dev
 ```bash
 pnpm dev         # dashboard (:5173) + API (:8080), with watchers
 pnpm test        # unit/integration tests across all workspaces
-pnpm acceptance  # MVP 1 vertical-slice acceptance suite (request → GitHub issues)
+pnpm acceptance  # MVP 1 + MVP 2 vertical-slice acceptance suites
 pnpm typecheck   # TypeScript type-checking across all workspaces
 pnpm lint        # ESLint across the repository
 pnpm build       # build API (dist) and dashboard (apps/web/dist)
