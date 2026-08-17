@@ -128,3 +128,4 @@ is reachable.
 - [ADR-0001: Monorepo and TypeScript toolchain](decisions/0001-monorepo-and-toolchain.md)
 - [ADR-0002: Single deployable with API/UI boundary](decisions/0002-single-deployable.md)
 - [ADR-0003: Local-first persistence with SQLite and Drizzle](decisions/0003-persistence.md)
+- [ADR-0004: Dashboard UI with shadcn/ui](decisions/0004-dashboard-ui-framework.md)
