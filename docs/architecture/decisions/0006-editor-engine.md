@@ -1,43 +1,56 @@
-# ADR-0006 — Embedded code editor: Monaco (not full VS Code web)
+# ADR-0006 — Embedded code editor: Monaco + LSP bridge (not full VS Code web)
 
 ## Status
 
-Accepted
+Accepted (revised)
 
 ## Context
 
-The Project files workspace should let users open source in the main pane with tabs and see
-**actual compilation errors** inline (the "VS Code-like" experience). We considered whether to
-bundle the real VS Code web (code-server) or keep the in-process Monaco editor that #32
-introduced.
+The Project files workspace should open files in the main pane with tabs and show **actual
+compilation errors** inline — the "VS Code-like" experience — across the languages the factory
+may build (TypeScript/JavaScript, C#, Dart, Rust), not just TS/JS.
+
+The earlier version of this ADR chose Monaco's bundled TypeScript worker for diagnostics. That
+is insufficient: it only covers TS/JS and gives no real diagnostics for C#, Dart, or Rust.
+
+We also considered bundling the real VS Code web (code-server), which would provide full IDEs
+(extensions, terminals, per-language LSP) out of the box.
 
 ## Decision
 
-**Keep Monaco** (`@monaco-editor/react`, in-process) as the embedded editor and get real
-diagnostics from Monaco's bundled language services (notably the TypeScript worker, which runs
-the actual TS language service in the browser and produces the same semantic errors the
-compiler would). Tabs are built on Monaco's multiple models, not an external tab system.
+**Keep Monaco** (`@monaco-editor/react`, in-process) as the embedded editor, and power its
+diagnostics with a **backend LSP bridge** using `monaco-languageclient`. The bridge hosts one
+real language server per supported language for the active project folder and streams typed
+diagnostics to Monaco over a JSON-RPC transport (WebSocket):
 
-Rejected: running **code-server** (full VS Code in the browser) as a bundled/featured editor.
+- TypeScript/JavaScript — TypeScript language server (`tsserver`)
+- C# — Roslyn / OmniSharp
+- Rust — `rust-analyzer`
+- Dart — Dart analysis server
+
+The language registry is extensible. For now, diagnostics (inline squiggles + a Problems
+panel) are the priority; hover/completion can follow on the same transport.
 
 ## Alternatives considered
 
-- **code-server / VS Code for the Web:** full VS Code (extensions, terminal, every language's
-  LSP). Rejected because it is a standalone application, not an embeddable component — it would
-  need its own always-running Node service, port + auth + security management, and a hard to
-  reconcile embedding in the resizable main pane alongside the factory's own UI. Bundle/runtime
-  cost is large.
-- **Monaco + external LSP (monaco-languageclient):** richer diagnostics for non-TS languages.
-  Deferred; re-evaluate if we need language servers beyond TypeScript.
-- **Plain textarea / hand-rolled editor:** insufficient for tabs, syntax highlighting, and
-  diagnostics.
+- **Bundled code-server / VS Code for the Web:** full VS Code with extensions, terminals, and
+  every language's LSP. Rejected because it is a standalone application, not an embeddable
+  component — it needs its own always-running service, port + auth + security management, and
+  hard-to-reconcile embedding in the resizable main pane alongside the factory's own UI.
+- **Monaco + backend toolchain check (`tsc` / `cargo check` / `dart analyze` / `dotnet build`):**
+  lighter than LSP but gives diagnostics only on-demand after a check/build, not the streaming,
+  incremental in-editor experience LSP provides.
+- **Monaco + TS-only language service:** rejected — does not cover C#/Dart/Rust.
 
-Monaco gives real TypeScript compilation errors client-side with no extra service, matches the
-existing lightweight, functional stack, and supports the multi-model tabs we need.
+The LSP bridge keeps the lightweight in-app Monaco editor while delivering real, streaming
+diagnostics for whatever language a project uses, at the cost of a backend server host and a
+client transport.
 
 ## Consequences
 
-- The main-pane editor is Monaco; tabs are multi-model; TS/JS diagnostics come from Monaco's TS
-  worker (a Problems panel surfaces them).
-- No separate code-server process or port/auth surface is introduced.
-- If a non-TS language needs full LSP, revisit Monaco-languageclient (ADR update required).
+- A backend **LSP host** manages per-language language-server processes and their lifecycle per
+  project folder, and exposes diagnostics (JSON-RPC) to the browser.
+- `monaco-languageclient` is added to the frontend; Monaco connects to the bridge for the active
+  folder and renders diagnostics inline and in a Problems panel.
+- No separate code-server process, port, or auth surface is introduced.
+- Each new language needs a small adapter (language server + spawn/args) added to the registry.
